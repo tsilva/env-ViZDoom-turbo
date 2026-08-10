@@ -30,6 +30,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
+#include <string>
 #include <vector>
 
 namespace vizdoom {
@@ -61,6 +63,8 @@ namespace vizdoom {
         void finishLaneNative(size_t lane);
         void startResetLaneNative(size_t lane, unsigned int seed);
         void resetLaneNative(size_t lane, unsigned int seed);
+        void clearNativeError() noexcept;
+        void recordNativeError(const char *phase, size_t lane, const char *message) noexcept;
         static uint64_t nativeStepLane(void *context, size_t lane) noexcept;
         static uint64_t nativeStartLane(void *context, size_t lane) noexcept;
         static uint64_t nativeStartAll(void *context) noexcept;
@@ -76,6 +80,8 @@ namespace vizdoom {
         static const uint8_t *nativeFrame(void *context, size_t lane) noexcept;
         static const uint8_t *nativePalette(void *context, size_t lane) noexcept;
         static const uint64_t *nativeBackgroundData(void *context, size_t lane) noexcept;
+        static void nativeClearError(void *context) noexcept;
+        static size_t nativeCopyError(void *context, char *destination, size_t capacity) noexcept;
 
         pyb::list gameOwners;
         std::vector<DoomGamePython *> games;
@@ -85,6 +91,8 @@ namespace vizdoom {
         size_t frameSize;
         size_t gameVariablesWidth;
         std::vector<uint32_t> screenUpdateSequences;
+        std::mutex nativeErrorMutex;
+        std::string nativeError;
 
         pyb::array_t<double, pyb::array::c_style> actions;
         pyb::array_t<uint8_t, pyb::array::c_style> frames;

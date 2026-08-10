@@ -23,7 +23,9 @@
 #include "ViZDoomTurboBatch.h"
 #include "ViZDoomController.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -187,47 +189,95 @@ namespace vizdoom {
         this->truncatedData[lane] = false;
     }
 
-    uint64_t TurboBatchStepper::nativeStepLane(void *context, size_t lane) noexcept {
+    void TurboBatchStepper::clearNativeError() noexcept {
         try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            if (lane >= stepper->games.size()) return 4;
+            std::lock_guard<std::mutex> guard(this->nativeErrorMutex);
+            this->nativeError.clear();
+        }
+        catch (...) {
+        }
+    }
+
+    void TurboBatchStepper::recordNativeError(
+        const char *phase,
+        size_t lane,
+        const char *message) noexcept {
+        try {
+            std::lock_guard<std::mutex> guard(this->nativeErrorMutex);
+            if (!this->nativeError.empty()) return;
+            this->nativeError =
+                std::string("phase=") + phase + " lane=" + std::to_string(lane) + ": " + message;
+        }
+        catch (...) {
+        }
+    }
+
+    uint64_t TurboBatchStepper::nativeStepLane(void *context, size_t lane) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
+        try {
+            if (lane >= stepper->games.size()) {
+                stepper->recordNativeError("step", lane, "lane is out of range");
+                return 4;
+            }
             stepper->stepLaneNative(lane);
             return (stepper->terminatedData[lane] ? 1u : 0u) |
                 (stepper->truncatedData[lane] ? 2u : 0u);
         }
+        catch (const std::exception &error) {
+            stepper->recordNativeError("step", lane, error.what());
+            return 4;
+        }
         catch (...) {
+            stepper->recordNativeError("step", lane, "unknown native exception");
             return 4;
         }
     }
 
     uint64_t TurboBatchStepper::nativeStartLane(void *context, size_t lane) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
         try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            if (lane >= stepper->games.size()) return 4;
+            if (lane >= stepper->games.size()) {
+                stepper->recordNativeError("start", lane, "lane is out of range");
+                return 4;
+            }
             stepper->startLaneNative(lane);
             return 0;
         }
+        catch (const std::exception &error) {
+            stepper->recordNativeError("start", lane, error.what());
+            return 4;
+        }
         catch (...) {
+            stepper->recordNativeError("start", lane, "unknown native exception");
             return 4;
         }
     }
 
     uint64_t TurboBatchStepper::nativeStartAll(void *context) noexcept {
-        try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            for (size_t lane = 0; lane < stepper->games.size(); ++lane)
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
+        for (size_t lane = 0; lane < stepper->games.size(); ++lane) {
+            try {
                 stepper->startLaneNative(lane);
-            return 0;
+            }
+            catch (const std::exception &error) {
+                stepper->recordNativeError("start", lane, error.what());
+                return 4;
+            }
+            catch (...) {
+                stepper->recordNativeError("start", lane, "unknown native exception");
+                return 4;
+            }
         }
-        catch (...) {
-            return 4;
-        }
+        return 0;
     }
 
     uint64_t TurboBatchStepper::nativeFinishLane(void *context, size_t lane) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
         try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            if (lane >= stepper->games.size()) return 4;
+            if (lane >= stepper->games.size()) {
+                stepper->recordNativeError("finish", lane, "lane is out of range");
+                return 4;
+            }
             stepper->finishLaneNative(lane);
             const uint32_t screenUpdateSequence =
                 stepper->games[lane]->doomController->getScreenUpdateSequence();
@@ -241,7 +291,12 @@ namespace vizdoom {
                 (screenUnchanged ? 8u : 0u) |
                 (backgroundState << 8);
         }
+        catch (const std::exception &error) {
+            stepper->recordNativeError("finish", lane, error.what());
+            return 4;
+        }
         catch (...) {
+            stepper->recordNativeError("finish", lane, "unknown native exception");
             return 4;
         }
     }
@@ -250,19 +305,23 @@ namespace vizdoom {
         void *context,
         size_t lane,
         unsigned int seed) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
         try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            if (lane >= stepper->games.size()) return 4;
+            if (lane >= stepper->games.size()) {
+                stepper->recordNativeError("reset", lane, "lane is out of range");
+                return 4;
+            }
             stepper->resetLaneNative(lane, seed);
             stepper->screenUpdateSequences[lane] =
                 stepper->games[lane]->doomController->getScreenUpdateSequence();
             return 0;
         }
         catch (const std::exception &error) {
-            std::fprintf(stderr, "turbo reset failed: %s\n", error.what());
+            stepper->recordNativeError("reset", lane, error.what());
             return 4;
         }
         catch (...) {
+            stepper->recordNativeError("reset", lane, "unknown native exception");
             return 4;
         }
     }
@@ -271,13 +330,21 @@ namespace vizdoom {
         void *context,
         size_t lane,
         unsigned int seed) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
         try {
-            TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
-            if (lane >= stepper->games.size()) return 4;
+            if (lane >= stepper->games.size()) {
+                stepper->recordNativeError("reset_start", lane, "lane is out of range");
+                return 4;
+            }
             stepper->startResetLaneNative(lane, seed);
             return 0;
         }
+        catch (const std::exception &error) {
+            stepper->recordNativeError("reset_start", lane, error.what());
+            return 4;
+        }
         catch (...) {
+            stepper->recordNativeError("reset_start", lane, "unknown native exception");
             return 4;
         }
     }
@@ -299,6 +366,30 @@ namespace vizdoom {
         TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
         if (lane >= stepper->games.size()) return NULL;
         return stepper->games[lane]->doomController->getTurboBackgroundData();
+    }
+
+    void TurboBatchStepper::nativeClearError(void *context) noexcept {
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
+        stepper->clearNativeError();
+    }
+
+    size_t TurboBatchStepper::nativeCopyError(
+        void *context,
+        char *destination,
+        size_t capacity) noexcept {
+        if (destination == nullptr || capacity == 0) return 0;
+        destination[0] = '\0';
+        TurboBatchStepper *stepper = static_cast<TurboBatchStepper *>(context);
+        try {
+            std::lock_guard<std::mutex> guard(stepper->nativeErrorMutex);
+            const size_t copied = std::min(stepper->nativeError.size(), capacity - 1);
+            if (copied > 0) std::memcpy(destination, stepper->nativeError.data(), copied);
+            destination[copied] = '\0';
+            return copied;
+        }
+        catch (...) {
+            return 0;
+        }
     }
 
     void TurboBatchStepper::readLaneInto(size_t lane) {
@@ -338,7 +429,9 @@ namespace vizdoom {
             reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativePalette),
             reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeResetLane),
             reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeBackgroundData),
-            reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeStartResetLane));
+            reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeStartResetLane),
+            reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeClearError),
+            reinterpret_cast<uintptr_t>(&TurboBatchStepper::nativeCopyError));
     }
 
 }

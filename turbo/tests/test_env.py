@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import inspect
 import sys
 from pathlib import Path
@@ -201,6 +202,104 @@ def test_removed_state_dir_is_rejected() -> None:
     assert "state_dir" not in inspect.signature(VizdoomTurboVecEnv).parameters
     with pytest.raises(TypeError, match="state_dir"):
         VizdoomTurboVecEnv(state_dir="/tmp/states")
+
+
+def test_native_batch_api_reports_phase_lane_and_message() -> None:
+    env = make_exact_env(num_envs=1, num_threads=1)
+    try:
+        env.reset(seed=3)
+        assert env._native_stepper is not None
+        native_api = env._native_stepper.native_api()
+        assert len(native_api) == 10
+        context = ctypes.c_void_p(native_api[0])
+        finish_lane = ctypes.CFUNCTYPE(
+            ctypes.c_uint64,
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+        )(native_api[2])
+        reset_lane_type = ctypes.CFUNCTYPE(
+            ctypes.c_uint,
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.c_uint,
+        )
+        reset_lane = reset_lane_type(native_api[5])
+        start_reset_lane = reset_lane_type(native_api[7])
+        clear_error = ctypes.CFUNCTYPE(None, ctypes.c_void_p)(native_api[8])
+        copy_error = ctypes.CFUNCTYPE(
+            ctypes.c_size_t,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_char),
+            ctypes.c_size_t,
+        )(native_api[9])
+        buffer = ctypes.create_string_buffer(512)
+
+        clear_error(context)
+        assert finish_lane(context, 99) & 4
+        copied = copy_error(context, buffer, len(buffer))
+
+        assert copied > 0
+        assert buffer.value.decode() == "phase=finish lane=99: lane is out of range"
+
+        clear_error(context)
+        assert reset_lane(context, 98, 1) & 4
+        copy_error(context, buffer, len(buffer))
+        assert buffer.value.decode() == "phase=reset lane=98: lane is out of range"
+
+        clear_error(context)
+        assert start_reset_lane(context, 97, 1) & 4
+        copy_error(context, buffer, len(buffer))
+        assert buffer.value.decode() == "phase=reset_start lane=97: lane is out of range"
+    finally:
+        env.close()
+
+
+def test_native_batch_runtime_error_includes_cpp_diagnostic() -> None:
+    env = make_exact_env(num_envs=1, num_threads=1)
+    try:
+        env.reset(seed=5)
+        native_api = list(env._native_api)
+        finish_type = ctypes.CFUNCTYPE(
+            ctypes.c_uint64,
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+        )
+        finish_lane = finish_type(native_api[2])
+
+        @finish_type
+        def fail_finish(context, _lane):
+            return finish_lane(context, 99)
+
+        failing_address = ctypes.cast(fail_finish, ctypes.c_void_p).value
+        assert failing_address is not None
+        native_api[2] = failing_address
+        env._native_api = tuple(native_api)
+
+        with pytest.raises(
+            RuntimeError,
+            match=r"native Doom lane step failed: phase=finish lane=99: lane is out of range",
+        ):
+            env.step(np.zeros(1, dtype=np.int64))
+    finally:
+        env.close()
+
+
+def test_native_start_failure_includes_lane_and_original_exception() -> None:
+    env = make_exact_env(num_envs=1, num_threads=1)
+    try:
+        env.reset(seed=7)
+        env._games[0].close()
+
+        with pytest.raises(
+            RuntimeError,
+            match=(
+                r"native Doom lane step failed: phase=start lane=0: "
+                r"Controlled ViZDoom instance is not running or not ready\."
+            ),
+        ):
+            env.step(np.zeros(1, dtype=np.int64))
+    finally:
+        env.close()
 
 
 @pytest.mark.parametrize(

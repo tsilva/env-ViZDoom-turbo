@@ -43,6 +43,20 @@ const INDEXED_TILE_COLUMNS: usize = 84_usize.div_ceil(INDEXED_TILE_SIZE);
 const INDEXED_TILE_ROWS: usize = 84_usize.div_ceil(INDEXED_TILE_SIZE);
 const INDEXED_TILE_COUNT: usize = INDEXED_TILE_COLUMNS * INDEXED_TILE_ROWS;
 const INDEXED_TILE_WORDS: usize = INDEXED_TILE_COUNT.div_ceil(64);
+const NATIVE_ERROR_CAPACITY: usize = 2048;
+
+type NativeClearError = unsafe extern "C" fn(*mut c_void);
+type NativeCopyError = unsafe extern "C" fn(*mut c_void, *mut u8, usize) -> usize;
+
+fn native_error_detail(context: usize, copy_error: NativeCopyError) -> String {
+    let mut buffer = [0_u8; NATIVE_ERROR_CAPACITY];
+    let copied = unsafe { copy_error(context as *mut c_void, buffer.as_mut_ptr(), buffer.len()) }
+        .min(buffer.len());
+    if copied == 0 {
+        return "native diagnostic unavailable".to_owned();
+    }
+    String::from_utf8_lossy(&buffer[..copied]).into_owned()
+}
 const INDEXED_BACKGROUND_CAPACITY: usize = 256;
 
 fn indexed_background_prefill_enabled() -> bool {
@@ -2059,6 +2073,8 @@ impl ImageProcessor {
         finish_address,
         frame_address,
         palette_address,
+        error_clear_address,
+        error_copy_address,
         stack,
         heads,
         output,
@@ -2077,6 +2093,8 @@ impl ImageProcessor {
         finish_address: usize,
         frame_address: usize,
         palette_address: usize,
+        error_clear_address: usize,
+        error_copy_address: usize,
         mut stack: PyReadwriteArray5<'_, u8>,
         mut heads: PyReadwriteArray1<'_, i64>,
         mut output: PyReadwriteArray4<'_, u8>,
@@ -2138,6 +2156,8 @@ impl ImageProcessor {
         type BackgroundDataLane = unsafe extern "C" fn(*mut c_void, usize) -> *const u64;
         let start_all: StartAll = unsafe { std::mem::transmute(start_address) };
         let finish_lane: StepLane = unsafe { std::mem::transmute(finish_address) };
+        let clear_error: NativeClearError = unsafe { std::mem::transmute(error_clear_address) };
+        let copy_error: NativeCopyError = unsafe { std::mem::transmute(error_copy_address) };
         let frame_lane: BufferLane = unsafe { std::mem::transmute(frame_address) };
         let palette_lane: BufferLane = unsafe { std::mem::transmute(palette_address) };
         let background_data_lane: Option<BackgroundDataLane> =
@@ -2164,6 +2184,8 @@ impl ImageProcessor {
         let pending_resets = (0..self.num_envs)
             .map(|_| AtomicBool::new(false))
             .collect::<Vec<_>>();
+
+        unsafe { clear_error(context as *mut c_void) };
 
         let start_pending_resets = || {
             if let (Some(start_reset), Some(lane_seeds)) = (start_reset_lane, reset_seed_data) {
@@ -2319,7 +2341,10 @@ impl ImageProcessor {
             });
         });
         if failed.load(Ordering::Relaxed) {
-            return Err(PyRuntimeError::new_err("native Doom lane step failed"));
+            return Err(PyRuntimeError::new_err(format!(
+                "native Doom lane step failed: {}",
+                native_error_detail(context, copy_error)
+            )));
         }
         Ok(terminal.load(Ordering::Relaxed))
     }
@@ -2328,6 +2353,8 @@ impl ImageProcessor {
         context,
         frame_address,
         palette_address,
+        error_clear_address,
+        error_copy_address,
         mask,
         stack,
         heads,
@@ -2342,6 +2369,8 @@ impl ImageProcessor {
         context: usize,
         frame_address: usize,
         palette_address: usize,
+        error_clear_address: usize,
+        error_copy_address: usize,
         mask: PyReadonlyArray1<'_, bool>,
         mut stack: PyReadwriteArray5<'_, u8>,
         mut heads: PyReadwriteArray1<'_, i64>,
@@ -2398,6 +2427,8 @@ impl ImageProcessor {
         type ResetLane = unsafe extern "C" fn(*mut c_void, usize, u32) -> u32;
         let frame_lane: BufferLane = unsafe { std::mem::transmute(frame_address) };
         let palette_lane: BufferLane = unsafe { std::mem::transmute(palette_address) };
+        let clear_error: NativeClearError = unsafe { std::mem::transmute(error_clear_address) };
+        let copy_error: NativeCopyError = unsafe { std::mem::transmute(error_copy_address) };
         let reset_lane: Option<ResetLane> =
             reset_address.map(|address| unsafe { std::mem::transmute(address) });
         let mask_data = mask.as_slice()?;
@@ -2409,6 +2440,8 @@ impl ImageProcessor {
         let stack_lane_size = self.frame_stack * image_frame_size;
         let output_lane_size = self.frame_stack * image_frame_size;
         let failed = AtomicBool::new(false);
+
+        unsafe { clear_error(context as *mut c_void) };
 
         py.detach(|| {
             self.pool.install(|| {
@@ -2467,7 +2500,10 @@ impl ImageProcessor {
             });
         });
         if failed.load(Ordering::Relaxed) {
-            return Err(PyRuntimeError::new_err("native Doom lane reset failed"));
+            return Err(PyRuntimeError::new_err(format!(
+                "native Doom lane reset failed: {}",
+                native_error_detail(context, copy_error)
+            )));
         }
         Ok(())
     }
@@ -2888,4 +2924,31 @@ fn _vizdoom_turbo(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<ImageProcessor>()?;
     module.add_function(wrap_pyfunction!(preprocess_into, module)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    unsafe extern "C" fn copy_test_error(
+        _context: *mut c_void,
+        destination: *mut u8,
+        capacity: usize,
+    ) -> usize {
+        let message = b"phase=finish lane=7: Doom process exited unexpectedly";
+        let copied = message.len().min(capacity.saturating_sub(1));
+        unsafe {
+            std::ptr::copy_nonoverlapping(message.as_ptr(), destination, copied);
+            *destination.add(copied) = 0;
+        }
+        copied
+    }
+
+    #[test]
+    fn native_error_detail_copies_callback_message() {
+        assert_eq!(
+            native_error_detail(0, copy_test_error),
+            "phase=finish lane=7: Doom process exited unexpectedly"
+        );
+    }
 }

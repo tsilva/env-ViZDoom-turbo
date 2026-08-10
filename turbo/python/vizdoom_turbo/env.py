@@ -999,22 +999,23 @@ class VizdoomTurboVecEnv(VectorEnv):
                 self._native_stepper.palette_view(lane) for lane in range(self.num_envs)
             )
             native_api = self._native_stepper.native_api()
+            if len(native_api) != 10 or any(int(address) <= 0 for address in native_api):
+                raise RuntimeError("ViZDoom native batch API must contain 10 valid addresses")
             self._native_api = native_api[:5]
-            self._native_reset_api = native_api[5] if len(native_api) >= 6 else None
+            self._native_reset_api = native_api[5]
             self._native_background_api = (
                 native_api[6]
-                if len(native_api) >= 7
-                and os.environ.get("VIZDOOM_TURBO_DISABLE_BACKGROUND_PROVENANCE") != "1"
+                if os.environ.get("VIZDOOM_TURBO_DISABLE_BACKGROUND_PROVENANCE") != "1"
                 and (self.obs_crop_mode == "mask" or self.obs_crop == (0, 0, 0, 0))
                 else None
             )
             self._native_reset_start_api = (
                 native_api[7]
-                if len(native_api) >= 8
-                and self._optimized_profile
+                if self._optimized_profile
                 and os.environ.get("VIZDOOM_TURBO_DISABLE_ASYNC_RESET") != "1"
                 else None
             )
+            self._native_error_api = native_api[8:10]
             self._native_stack_lanes = tuple(self._stack[lane] for lane in range(self.num_envs))
             self._native_head_lanes = tuple(
                 self._stack_heads[lane : lane + 1] for lane in range(self.num_envs)
@@ -1613,6 +1614,7 @@ class VizdoomTurboVecEnv(VectorEnv):
                     self._native_api[0],
                     self._native_api[3],
                     self._native_api[4],
+                    *self._native_error_api,
                     static_mask,
                     self._stack,
                     self._stack_heads,
@@ -1630,6 +1632,7 @@ class VizdoomTurboVecEnv(VectorEnv):
                     self._native_api[0],
                     self._native_api[3],
                     self._native_api[4],
+                    *self._native_error_api,
                     static_mask,
                     self._stack,
                     self._stack_heads,
@@ -1825,6 +1828,7 @@ class VizdoomTurboVecEnv(VectorEnv):
                 self._native_actions_buffer[...] = applied
             self._has_pending_reset = self._image_processor.step_native_batch_into(
                 *self._native_api,
+                *self._native_error_api,
                 self._stack,
                 self._stack_heads,
                 observations,
