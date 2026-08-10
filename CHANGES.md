@@ -4,6 +4,10 @@
 
 - Nothing yet.
 
+## 1.3.0.post24 - 2026-08-10
+
+- Preserve native Doom failure diagnostics.
+
 ## 1.3.0.post23 - 2026-08-06
 
 - Add opt-in frame-stack-aligned histories for selected info signals while
