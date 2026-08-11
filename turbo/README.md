@@ -265,8 +265,11 @@ comparison grids live with the editable Defend the Line Plus scenario sources.
   with `active_state_indices()`; state sampling and lane routing remain
   caller-owned.
 - `observation_ownership` and `observation_buffer_depth` declare the exact
-  lifetime of returned observations. `render_lane(index)` renders one lane,
-  `get_images()` renders all lanes, and `render()` renders lane zero.
+  lifetime of returned observations. Rendering is opt-in: with
+  `render_mode="rgb_array"`, `render_lane(index)` renders one lane,
+  `get_images()` renders all lanes, and `render()` renders lane zero. With the
+  default `render_mode=None`, the first two methods return `None` and
+  `get_images()` returns one `None` entry per lane.
 
 ## Use with rlab
 
@@ -310,10 +313,19 @@ cargo clippy --all-targets --all-features -- -D warnings  # lint Rust
 uv build --wheel                                          # build the distributable wheel
 VIZDOOM_TURBO_PREBUILT_CORE=/path/to/vizdoom uv build --wheel
                                                              # package a validated optimized core
-uv run python benchmarks/benchmark_sps.py                 # measure the canonical SPS profile
 ```
 
-For release-to-release checks, use `benchmarks/compare_contract.py` to compare deterministic traces and `benchmarks/compare_sps.py` for alternating paired SPS measurements. Both commands accept separate baseline and candidate Python interpreters and optional `--baseline-env`/`--candidate-env` assignments, so released wheels, working trees, and runtime feature gates stay isolated.
+Install [TurboBench 1.0.0](https://pypi.org/project/turbobench-cli/1.0.0/):
+
+```bash
+uv tool install \
+  --exclude-newer-package turbobench-cli=2026-08-12T00:00:00Z \
+  turbobench-cli==1.0.0
+```
+
+Use its immutable `vizdoom/basic-v1` profile for correctness-gated throughput
+comparisons. The repository-local `benchmarks/compare_contract.py` remains
+available for focused deterministic trace checks.
 
 ## Notes
 

@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Make Turbo vector rendering opt-in with `render_mode="rgb_array"`; the
+  default `None` mode performs no RGB synchronization and returns lane-aligned
+  `None` values from `get_images()`.
+- Validate Stable integration compatibility values instead of silently
+  discarding `inttype`.
+- Remove unused reset bookkeeping and an unreachable native per-lane job graph
+  while retaining the active native batch buffers and episode semantics.
 
 ## 1.3.0.post24 - 2026-08-10
 

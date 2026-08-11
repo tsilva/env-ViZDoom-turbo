@@ -1,6 +1,6 @@
 ---
 name: optimize-sps
-description: Iteratively optimize ViZDoom-turbo environment SPS to a user-specified multiplier using Goal Mode, paired same-machine control/candidate benchmarks, exact parity gates, component profiling, and packaging validation. Use when asked to pursue another throughput multiplier, optimize the exact RLab VizdoomBasic-v1 32-env/32-thread profile, invoke $optimize-sps, or continue SPS performance work until a measured target or defensible upper bound is reached.
+description: Iteratively optimize ViZDoom-turbo environment SPS to a user-specified multiplier using Goal Mode, TurboBench evidence bundles, exact parity gates, component profiling, and packaging validation. Use when asked to pursue another throughput multiplier, optimize the immutable TurboBench vizdoom/basic-v1 profile, invoke $optimize-sps, or continue SPS performance work until a measured target or defensible upper bound is reached.
 ---
 
 # Optimize ViZDoom SPS
@@ -21,17 +21,17 @@ Interpret the target relative to the frozen control measured at the beginning of
 this invocation. Do not use a historical result as the denominator. Ask for the
 target only if it is absent or ambiguous.
 
-Use the exact RLab profile below unless the invocation explicitly supplies
-another profile. Never silently weaken a setting to obtain the target.
+Use the immutable TurboBench profile below unless the invocation explicitly
+supplies another profile. Never silently weaken a setting to obtain the target.
 
 ## Start or continue Goal Mode
 
 1. Call `get_goal` before doing substantial work.
 2. If no unfinished matching goal exists, call `create_goal`. The explicit skill
    invocation authorizes creating this goal.
-3. Set the objective to achieve the requested paired median speedup with exact
-   parity and shippable packaging, or prove with measured component bounds why
-   exact semantics prevent it.
+3. Set the objective to achieve the requested median speedup in verified
+   TurboBench evidence with exact parity and shippable packaging, or prove with
+   measured component bounds why exact semantics prevent it.
 4. Do not set a token budget unless the user explicitly supplied one.
 5. Continue iterating across goal turns; do not stop merely because one
    experiment fails or the work is difficult.
@@ -47,8 +47,9 @@ another profile. Never silently weaken a setting to obtain the target.
    unavailable, state that and read `SPECS.md` directly.
 3. Inspect the dirty worktree before changing anything. Attribute every existing
    change and preserve user or unrelated work.
-4. Inspect the existing exact benchmark, tests, native bindings, Rust processor,
-   build, and wheel paths only as needed.
+4. Inspect the TurboBench profile and provider contract, repository-local contract
+   checker, tests, native bindings, Rust processor, build, and wheel paths only
+   as needed.
 5. Inspect these sibling implementations when available:
 
 ```text
@@ -61,32 +62,35 @@ If a reference path is unavailable, record that once and continue.
 
 ## Hold the benchmark contract fixed
 
-Use this exact default workload:
+Use TurboBench's immutable `vizdoom/basic-v1` profile without diagnostic shape,
+step, load, or correctness overrides. It covers shapes 1, 16, and 32; evaluate
+the optimization target against the shape-32 result while preserving the other
+shape results as regression evidence. Exclude policy inference, training, and
+logging work not inherent to the environment.
 
-```yaml
-game: VizdoomBasic-v1
-num_envs: 32
-num_threads: 32
-use_restricted_actions: discrete
-obs_copy: safe_view
-obs_resize: [84, 84]
-obs_grayscale: true
-obs_layout: chw
-frame_stack: 4
-frame_skip: 4
-maxpool_last_two: false
-sticky_action_prob: 0
-obs_resize_algorithm: area
-info_filter:
-  mode: all
-  keys: [killcount]
-game_variables: [KILLCOUNT]
+Install [TurboBench 1.0.0](https://pypi.org/project/turbobench-cli/1.0.0/):
+
+```text
+uv tool install \
+  --exclude-newer-package turbobench-cli=2026-08-12T00:00:00Z \
+  turbobench-cli==1.0.0
 ```
 
-Use the repository's exact RLab profile in
-`turbo/benchmarks/benchmark_sps.py`; extend it only if required to preserve this
-contract. Exclude policy inference, training, logging work not inherent to the
-environment, and unrelated setup time.
+Pin the same compatible upstream `vizdoom` version for every control and
+candidate bundle:
+
+```text
+turbobench doctor vizdoom/basic-v1
+turbobench compare vizdoom/basic-v1 \
+  --left vizdoom-turbo@checkout:/absolute/path/to/checkout \
+  --right vizdoom@<compatible-version> \
+  --output /absolute/path/to/result
+turbobench verify /absolute/path/to/result
+```
+
+Do not use `--quick`, `--force-busy`, `--allow-dirty`, `--steps`, or `--shapes`
+for final evidence. Those options produce diagnostic results and cannot support
+the final claim.
 
 Record the hostname, revision, dirty-state identity, Python environment, build
 mode, affinity, and benchmark command. Keep CPU affinity and other execution
@@ -94,30 +98,33 @@ conditions identical between control and candidate.
 
 ## Freeze and measure the control
 
-Preserve a runnable start-of-goal control before editing:
+Preserve a runnable, clean start-of-goal control checkout before editing:
 
-- Prefer a runtime feature gate in the same build when it exercises the genuine
-  old path without affecting it.
-- Otherwise use an isolated worktree and build environment.
+- Use an isolated worktree or clone so TurboBench can resolve and snapshot the
+  exact control revision.
 - If the initial tree is dirty, do not pretend the commit alone represents the
-  control. Preserve the relevant dirty state non-destructively.
+  control. Preserve the relevant dirty state non-destructively and label any
+  `--allow-dirty` measurement diagnostic.
 - Never stash, reset, discard, overwrite, or commit user work to manufacture a
   control.
 
-Warm up both paths. Then collect at least five samples per path in paired or
-interleaved order on the same machine. Prefer balanced order such as `ABBA`,
-varying the starting side across repetitions.
+Create one verified TurboBench bundle for the frozen control and one for each
+plausible candidate, always on the same machine and against the same pinned
+upstream provider. TurboBench owns warmup, alternating paired measurement,
+sample counts, system-load checks, provenance, and correctness gates. Never
+reimplement those mechanisms in this repository.
 
-Report raw samples, median SPS, and median vector-step latency. Compute:
+Report the bundle paths, shape-32 raw samples, median SPS, and median vector-step
+latency. Compute the optimization speedup from the turbo side of the two bundles:
 
 ```text
 vector_step_ms = 1000 * num_envs / SPS
-speedup = candidate_median_SPS / control_median_SPS
+speedup = candidate_turbo_median_SPS / control_turbo_median_SPS
 ```
 
-Rebaseline if the host, build mode, dependency set, benchmark semantics, or
-execution conditions change. Do not compare results collected on different
-machines.
+Rebaseline if the host, pinned upstream provider, Python runtime, build mode,
+dependency set, immutable profile, or execution conditions change. Do not
+compare results collected on different machines.
 
 ## Profile before selecting an experiment
 
@@ -159,9 +166,9 @@ For each iteration:
 3. Change only files required for that experiment.
 4. Build only what the experiment requires.
 5. Run focused parity checks before spending time on a full benchmark.
-6. Run a short performance screen to reject obvious regressions.
-7. Run the full paired protocol for plausible wins.
-8. Keep a change only when its paired result improves the current best without
+6. Use a clearly labeled diagnostic TurboBench run to reject obvious regressions.
+7. Create and verify a full TurboBench bundle for plausible wins.
+8. Keep a change only when its verified result improves the current best without
    violating semantics, generic behavior, or packaging.
 9. Remove rejected experimental code that this goal introduced. Never revert
    pre-existing or concurrent user changes.
@@ -229,8 +236,8 @@ plausibly bridge the target gap.
 
 Report:
 
-- target multiplier and exact benchmark command
-- paired control and final raw samples
+- target multiplier and exact TurboBench commands
+- control and final bundle paths and raw samples
 - control and final median SPS
 - speedup ratio and vector-step latency
 - component timings and inferred bottlenecks

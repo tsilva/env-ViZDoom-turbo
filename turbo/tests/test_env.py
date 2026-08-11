@@ -134,6 +134,7 @@ def assert_mechanical_info_equal(
 def test_public_signature_matches_turbo_constructor_contract() -> None:
     parameters = inspect.signature(VizdoomTurboVecEnv).parameters
     assert parameters["use_fire_reset"].default is False
+    assert parameters["render_mode"].default is None
     expected = {
         "game",
         "state",
@@ -196,6 +197,31 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
         spec = gym.spec(registered_id)
         assert spec.vector_entry_point == "vizdoom_turbo:VizdoomTurboVecEnv"
         assert spec.kwargs["game"] == game
+
+
+@pytest.mark.parametrize("value", ["stable", "STABLE", 1, np.int64(1)])
+def test_stable_integration_compatibility_forms_are_accepted(value: object) -> None:
+    env = make_env(inttype=value)
+    env.close()
+
+
+@pytest.mark.parametrize("value", [True, np.bool_(True), "1", 0, object()])
+def test_non_stable_integration_values_are_rejected(value: object) -> None:
+    with pytest.raises(ValueError, match="inttype"):
+        make_env(inttype=value)
+
+
+def test_enum_like_stable_integration_is_accepted() -> None:
+    class StableIntegration:
+        name = "STABLE"
+
+    env = make_env(inttype=StableIntegration())
+    env.close()
+
+
+def test_unsupported_render_mode_is_rejected() -> None:
+    with pytest.raises(ValueError, match="render_mode"):
+        make_env(render_mode="human")
 
 
 def test_removed_state_dir_is_rejected() -> None:
@@ -970,7 +996,7 @@ def test_plus_snapshot_restore_preserves_appearance(game: str) -> None:
 
 
 def test_turbo_api_v1_capabilities_signals_ownership_and_rendering() -> None:
-    env = make_env()
+    env = make_env(render_mode="rgb_array")
     try:
         env.reset(seed=19)
         assert env.observation_ownership == "safe_view"
@@ -987,6 +1013,17 @@ def test_turbo_api_v1_capabilities_signals_ownership_and_rendering() -> None:
         assert len(images) == env.num_envs
         assert all(image.dtype == np.uint8 and image.ndim == 3 for image in images)
         np.testing.assert_array_equal(env.render(), images[0])
+    finally:
+        env.close()
+
+
+def test_rendering_is_disabled_by_default() -> None:
+    env = make_env()
+    try:
+        env.reset(seed=19)
+        assert env.render() is None
+        assert env.render_lane(1) is None
+        assert env.get_images() == [None, None]
     finally:
         env.close()
 
@@ -1240,7 +1277,7 @@ def test_every_supported_scenario_resets_and_steps(scenario: str) -> None:
 
 
 def test_real_vector_step_and_masked_reset_preserve_other_lane() -> None:
-    env = make_env()
+    env = make_env(render_mode="rgb_array")
     try:
         assert all(
             Path(game.get_doom_config_path()).parent == Path(env._tempdir.name)

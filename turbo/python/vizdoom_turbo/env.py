@@ -248,6 +248,20 @@ def _enum_name(value: Any) -> str:
     return str(getattr(value, "name", value)).split(".")[-1]
 
 
+def _is_stable_integration(value: Any) -> bool:
+    name = getattr(value, "name", None)
+    if name is not None and str(name).strip().casefold() == "stable":
+        return True
+    if isinstance(value, str):
+        return value.strip().casefold() == "stable"
+    if isinstance(value, (bool, np.bool_)):
+        return False
+    try:
+        return operator.index(value) == 1
+    except TypeError:
+        return False
+
+
 @dataclass(frozen=True)
 class _Scenario:
     config_path: Path
@@ -503,7 +517,7 @@ class VizdoomTurboVecEnv(VectorEnv):
         players: int = 1,
         inttype: Any = "stable",
         obs_type: Any = "image",
-        render_mode: str = "rgb_array",
+        render_mode: Literal["rgb_array"] | None = None,
         *,
         num_envs: int = 1,
         num_threads: int | None = None,
@@ -546,11 +560,12 @@ class VizdoomTurboVecEnv(VectorEnv):
             raise ValueError("VizdoomTurboVecEnv currently supports players=1")
         if _enum_name(obs_type).casefold() not in {"image", "observations.image"}:
             raise ValueError("VizdoomTurboVecEnv supports image observations only")
-        if render_mode != "rgb_array":
-            raise ValueError("render_mode must be 'rgb_array'")
+        if not _is_stable_integration(inttype):
+            raise ValueError("inttype must select the Stable integration")
+        if render_mode not in (None, "rgb_array"):
+            raise ValueError("render_mode must be None or 'rgb_array'")
         if use_fire_reset:
             raise ValueError("use_fire_reset is not applicable to ViZDoom")
-        del inttype
 
         self.num_envs = _positive_int(num_envs, "num_envs")
         self.num_threads = (
@@ -857,7 +872,6 @@ class VizdoomTurboVecEnv(VectorEnv):
             for role in self.surface_variant_roles
         ]
         self._seed_values = [None] * self.num_envs
-        self._options = [None] * self.num_envs
         self._signal_names = (
             *self.game_variable_names,
             "episode_time",
@@ -1016,16 +1030,6 @@ class VizdoomTurboVecEnv(VectorEnv):
                 else None
             )
             self._native_error_api = native_api[8:10]
-            self._native_stack_lanes = tuple(self._stack[lane] for lane in range(self.num_envs))
-            self._native_head_lanes = tuple(
-                self._stack_heads[lane : lane + 1] for lane in range(self.num_envs)
-            )
-            self._native_observation_lanes = {
-                id(buffer): tuple(buffer[lane] for lane in range(self.num_envs))
-                for buffer in self._obs_buffers
-            }
-            self._active_native_observation_lanes = ()
-            self._native_jobs = [(self._step_native_lane, (lane,)) for lane in range(self.num_envs)]
 
     def _new_game(self):
         game = vzd.DoomGame()
@@ -1696,7 +1700,6 @@ class VizdoomTurboVecEnv(VectorEnv):
         infos["noop_reset_count"] = noop_counts
         infos["_noop_reset_count"] = static_mask.copy()
         self._seed_values = [None] * self.num_envs
-        self._options = [None] * self.num_envs
         return self._returned_obs(observations), infos
 
     def _native_actions(
@@ -1771,23 +1774,6 @@ class VizdoomTurboVecEnv(VectorEnv):
             truncated,
             self._raw_signals(lane_game),
         )
-
-    def _step_native_lane(self, lane: int) -> None:
-        self._native_stepper.step_lane_into(lane)
-        if self._native_terminated[lane] or self._native_truncated[lane]:
-            self._image_processor.repeat_last_lane_into(
-                self._native_stack_lanes[lane],
-                self._native_head_lanes[lane],
-                self._active_native_observation_lanes[lane],
-            )
-        else:
-            self._image_processor.step_indexed_lane_into(
-                self._native_indexed_frames[lane],
-                self._native_palettes[lane],
-                self._native_stack_lanes[lane],
-                self._native_head_lanes[lane],
-                self._active_native_observation_lanes[lane],
-            )
 
     def _sync_native_rgb(self, lane: int) -> None:
         if self._native_stepper is not None:
@@ -1999,7 +1985,7 @@ class VizdoomTurboVecEnv(VectorEnv):
             )
         return tuple(result)
 
-    def render_lane(self, lane: int) -> np.ndarray:
+    def render_lane(self, lane: int) -> np.ndarray | None:
         if self.closed:
             raise RuntimeError("cannot render a closed environment")
         if isinstance(lane, (bool, np.bool_)):
@@ -2007,13 +1993,17 @@ class VizdoomTurboVecEnv(VectorEnv):
         lane_index = operator.index(lane)
         if not 0 <= lane_index < self.num_envs:
             raise IndexError(f"lane must be in [0, {self.num_envs - 1}]")
+        if self.render_mode != "rgb_array":
+            return None
         self._sync_native_rgb(lane_index)
         return self._raw_frames[lane_index].copy()
 
     def render(self):
         return self.render_lane(0)
 
-    def get_images(self) -> list[np.ndarray]:
+    def get_images(self) -> list[np.ndarray | None]:
+        if self.render_mode != "rgb_array":
+            return [None for _ in range(self.num_envs)]
         for lane in range(self.num_envs):
             self._sync_native_rgb(lane)
         return [frame.copy() for frame in self._raw_frames]
