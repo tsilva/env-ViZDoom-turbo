@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add the vector-only Gymnasium factory `vizdoom_turbo:Vizdoom-Turbo-v0`, with
+  an explicit `game` argument and the native vector environment as its result.
 - Make Turbo vector rendering opt-in with `render_mode="rgb_array"`; the
   default `None` mode performs no RGB synchronization and returns lane-aligned
   `None` values from `get_images()`.

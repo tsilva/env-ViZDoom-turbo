@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ctypes
 import inspect
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,6 +11,8 @@ import gymnasium as gym
 import numpy as np
 import pytest
 import vizdoom as vzd
+import vizdoom_turbo
+from gymnasium.envs.registration import EnvSpec
 from gymnasium.vector import AutoresetMode
 from vizdoom_turbo import VizDoomTurboVecEnv, VizdoomTurboVecEnv, scenario_buttons
 from vizdoom_turbo.env import _SignalFrameStacks
@@ -72,6 +76,81 @@ def make_env(**overrides) -> VizdoomTurboVecEnv:
     }
     options.update(overrides)
     return VizdoomTurboVecEnv(**options)
+
+
+def test_generic_gymnasium_registration_is_vector_only_and_idempotent(monkeypatch):
+    spec = gym.spec(vizdoom_turbo.GYMNASIUM_ENV_ID)
+    assert spec.entry_point is None
+    assert spec.vector_entry_point == "vizdoom_turbo:_make_gymnasium_vec_env"
+    assert spec.kwargs == {}
+    vizdoom_turbo._register_gymnasium_envs()
+
+    with pytest.raises(gym.error.Error, match="entry_point is not specified"):
+        gym.make(vizdoom_turbo.GYMNASIUM_ENV_ID, game="VizdoomBasic-v1")
+    with pytest.raises(TypeError, match="game"):
+        gym.make_vec(vizdoom_turbo.GYMNASIUM_ENV_ID, num_envs=1)
+
+    monkeypatch.setitem(
+        gym.registry,
+        vizdoom_turbo.GYMNASIUM_ENV_ID,
+        EnvSpec(
+            id=vizdoom_turbo.GYMNASIUM_ENV_ID,
+            entry_point=None,
+            vector_entry_point="tests:conflicting_factory",
+        ),
+    )
+    with pytest.raises(gym.error.Error, match="conflicting specification"):
+        vizdoom_turbo._register_gymnasium_envs()
+
+
+def test_module_qualified_gymnasium_id_registers_in_a_clean_process():
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, (str(root / "python"), env.get("PYTHONPATH"))))
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            'exec("""import gymnasium as gym\n'
+            "assert 'Vizdoom-Turbo-v0' not in gym.registry\n"
+            "try:\n"
+            "    gym.make_vec('vizdoom_turbo:Vizdoom-Turbo-v0', num_envs=1)\n"
+            "except TypeError as exc:\n"
+            "    assert 'game' in str(exc)\n"
+            "else:\n"
+            "    raise AssertionError('game was not required')\n"
+            "spec = gym.spec('Vizdoom-Turbo-v0')\n"
+            "assert spec.vector_entry_point == "
+            '\'vizdoom_turbo:_make_gymnasium_vec_env\'\n""")',
+        ],
+        check=True,
+        cwd=root,
+        env=env,
+    )
+
+
+def test_generic_gymnasium_factory_runs_native_vector_env():
+    env = gym.make_vec(
+        "vizdoom_turbo:Vizdoom-Turbo-v0",
+        game="VizdoomBasic-v1",
+        num_envs=2,
+        num_threads=2,
+        use_restricted_actions="minimal",
+        obs_resize=(32, 40),
+        obs_grayscale=True,
+        obs_layout="chw",
+        frame_skip=2,
+        frame_stack=4,
+        maxpool_last_two=True,
+    )
+    try:
+        assert isinstance(env, VizdoomTurboVecEnv)
+        observations, _infos = env.reset(seed=7)
+        assert env.observation_space.contains(observations)
+        transition = env.step(np.zeros(2, dtype=np.int64))
+        assert env.observation_space.contains(transition[0])
+    finally:
+        env.close()
 
 
 def make_exact_env(**overrides) -> VizdoomTurboVecEnv:

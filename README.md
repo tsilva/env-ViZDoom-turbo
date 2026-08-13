@@ -30,11 +30,12 @@ Run Python and project commands through `uv run`.
 ## Use
 
 ```python
+import gymnasium as gym
 import numpy as np
-from vizdoom_turbo import VizdoomTurboVecEnv
 
-env = VizdoomTurboVecEnv(
-    "VizdoomBasic-v1",
+env = gym.make_vec(
+    "vizdoom_turbo:Vizdoom-Turbo-v0",
+    game="VizdoomBasic-v1",
     num_envs=16,
     num_threads=8,
     obs_resize=(84, 84),
@@ -62,8 +63,11 @@ finally:
     env.close()
 ```
 
-The package accepts canonical registered `Vizdoom...` Gymnasium IDs and
-ViZDoom `.cfg` paths.
+The module-qualified ID imports the package and registers the factory. This ID
+is vector-only and requires an explicit `game`, which can be a canonical
+registered `Vizdoom...` Gymnasium ID or a ViZDoom `.cfg` path.
+`VizdoomTurboVecEnv` remains available for direct use, and the existing
+scenario-specific vector IDs remain registered for compatibility.
 
 ### Crop or mask observations
 
