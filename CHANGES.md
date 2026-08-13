@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Nothing yet.
+
+## 1.3.0.post26 - 2026-08-13
+
 - Migrate `VizdoomTurboVecEnv` to the breaking Turbo Vector API v2 common
   constructor with a required `game`, resolved NumPy transport, exact
   capabilities, and portable signal schema.
