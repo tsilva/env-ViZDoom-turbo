@@ -121,11 +121,12 @@ oldest-to-newest, repeat the reset value, shift once per vector-environment
 snapshot semantics lane by lane. They are policy-transition histories, not raw
 ViZDoom-tic histories.
 
-## Turbo Vector API v1
+## Turbo Vector API v2
 
-`VizdoomTurboVecEnv` implements the strict Turbo Vector API v1:
+`VizdoomTurboVecEnv` implements the strict Turbo Vector API v2:
 
-- `metadata["turbo_api_version"]` is `1`, and `metadata["render_modes"]`
+- `metadata["turbo_api_version"]` is `2`,
+  `metadata["transition_transport"]` is `"numpy"`, and `metadata["render_modes"]`
   advertises `rgb_array`.
 - Immutable `capabilities` and `signal_schema` declarations describe supported
   features and the dtype, shape, and reset/step availability of every signal.

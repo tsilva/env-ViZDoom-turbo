@@ -341,19 +341,20 @@ def _resolve_state_catalog(
     state: Any,
     state_catalog: Sequence[Any] | None,
 ) -> tuple[tuple[_StateAsset, ...], int]:
-    requested = _state_asset(state)
-    values = (state,) if state_catalog is None else tuple(state_catalog)
+    if state is not None and state_catalog is not None:
+        raise ValueError("state and state_catalog are mutually exclusive")
+    values = (
+        ((_DEFAULT_STATE if state is None else state),)
+        if state_catalog is None
+        else tuple(state_catalog)
+    )
     if not values:
-        values = (_DEFAULT_STATE,)
+        raise ValueError("state_catalog must not be empty")
     assets = tuple(_state_asset(value) for value in values)
     labels = tuple(asset.label for asset in assets)
     if len(set(labels)) != len(labels):
         raise ValueError("state_catalog must contain unique state labels")
-    try:
-        default_index = labels.index(requested.label)
-    except ValueError as exc:
-        raise ValueError("state must be present in state_catalog") from exc
-    return assets, default_index
+    return assets, 0
 
 
 @dataclass(frozen=True)
@@ -502,17 +503,18 @@ class VizdoomTurboVecEnv(VectorEnv):
         "autoreset_mode": AutoresetMode.DISABLED,
         "render_modes": ["rgb_array"],
         "render_fps": int(vzd.DEFAULT_TICRATE),
-        "turbo_api_version": 1,
+        "turbo_api_version": 2,
+        "transition_transport": "numpy",
     }
     supports_live_snapshots = True
 
     def __init__(
         self,
-        game: str | Path | None = "VizdoomBasic-v1",
-        state: Any = _DEFAULT_STATE,
+        game: str | Path,
+        state: Any = None,
         scenario: str | Path | None = None,
         info: Any = None,
-        use_restricted_actions: Any | str | ActionTable = "filtered",
+        use_restricted_actions: Any | str | ActionTable = "default",
         record: bool = False,
         players: int = 1,
         inttype: Any = "stable",
@@ -522,6 +524,7 @@ class VizdoomTurboVecEnv(VectorEnv):
         num_envs: int = 1,
         num_threads: int | None = None,
         rom_path: str | None = None,
+        transport: str = "default",
         obs_copy: Literal["copy", "safe_view", "unsafe_view"] = "safe_view",
         obs_resize: tuple[int, int] | None = (84, 84),
         obs_crop: tuple[int, int, int, int] | None = None,
@@ -548,10 +551,13 @@ class VizdoomTurboVecEnv(VectorEnv):
         surface_variants: Mapping[str, Sequence[str]] | None = None,
         treat_episode_timeout_as_truncation: bool = True,
         vizdoom_config: Mapping[str, Any] | None = None,
-        **unsupported: Any,
     ):
-        if unsupported:
-            raise TypeError(f"unsupported option(s): {', '.join(sorted(unsupported))}")
+        if transport == "default":
+            transport = "numpy"
+        if transport != "numpy":
+            raise ValueError("transport must be 'default' or 'numpy'")
+        if isinstance(use_restricted_actions, str) and use_restricted_actions == "default":
+            use_restricted_actions = "filtered"
         if info not in (None, "data"):
             raise ValueError("info must be None/'data'; use game_variables for ViZDoom signals")
         if record:
@@ -609,6 +615,7 @@ class VizdoomTurboVecEnv(VectorEnv):
             raise ValueError("obs_resize_algorithm must be 'nearest', 'bilinear', or 'area'")
         self.treat_episode_timeout_as_truncation = bool(treat_episode_timeout_as_truncation)
         self.game = str(game or "VizdoomBasic-v1")
+        self.transport = transport
         self.render_mode = render_mode
         self.autoreset_mode = AutoresetMode.DISABLED
         self.closed = False
@@ -620,9 +627,7 @@ class VizdoomTurboVecEnv(VectorEnv):
                 self._enemy_variant_specs,
                 self.enemy_variant_catalog_sha256,
             ) = resolve_enemy_variants(self._plus_scenario, enemy_variants)
-            _plus_config, self.enemy_variant_wad_sha256 = plus_scenario(
-                self._plus_scenario
-            )
+            _plus_config, self.enemy_variant_wad_sha256 = plus_scenario(self._plus_scenario)
             (
                 self._surface_variant_specs,
                 self.surface_variant_catalog_sha256,
@@ -667,8 +672,7 @@ class VizdoomTurboVecEnv(VectorEnv):
         exact_info_filter = (
             isinstance(info_filter, Mapping)
             and str(info_filter.get("mode", "")).casefold() == "all"
-            and tuple(str(key).casefold() for key in info_filter.get("keys", ()))
-            == ("killcount",)
+            and tuple(str(key).casefold() for key in info_filter.get("keys", ())) == ("killcount",)
         )
         self._optimized_profile = (
             self.num_envs == 32
@@ -699,8 +703,7 @@ class VizdoomTurboVecEnv(VectorEnv):
             and self.reward_clip is None
             and exact_info_filter
             and tuple(
-                str(variable).strip().casefold()
-                for variable in self._requested_game_variables
+                str(variable).strip().casefold() for variable in self._requested_game_variables
             )
             == ("killcount",)
             and self.treat_episode_timeout_as_truncation
@@ -886,7 +889,7 @@ class VizdoomTurboVecEnv(VectorEnv):
             {
                 name: MappingProxyType(
                     {
-                        "dtype": np.dtype(np.float64),
+                        "dtype": "float64",
                         "shape": (),
                         "available_on_reset": self._info_mode == "all",
                         "available_on_step": self._info_mode != "none",
@@ -897,6 +900,16 @@ class VizdoomTurboVecEnv(VectorEnv):
             if self._info_mode != "none"
             else {}
         )
+        if self._plus_scenario is not None:
+            for role in (*self.enemy_variant_roles, *self.surface_variant_roles):
+                signal_schema[f"{role}_variant_index"] = MappingProxyType(
+                    {
+                        "dtype": "int32",
+                        "shape": (),
+                        "available_on_reset": True,
+                        "available_on_step": False,
+                    }
+                )
         self._configure_info_frame_stacks(info_frame_stack_keys, signal_schema)
         for key in self.info_frame_stack_keys:
             original = signal_schema[key]
@@ -919,21 +932,30 @@ class VizdoomTurboVecEnv(VectorEnv):
                     "custom_discrete",
                 ),
                 "supported_observation_layouts": ("chw", "hwc"),
+                "supported_observation_color_modes": ("grayscale", "rgb"),
                 "supported_resize_algorithms": ("nearest", "bilinear", "area"),
+                "supported_crop_modes": ("remove", "mask"),
                 "supported_observation_copy_modes": (
                     "copy",
                     "safe_view",
                     "unsafe_view",
                 ),
-                "supports_maxpool_last_two": True,
-                "supports_sticky_action_prob": True,
-                "supports_reward_clipping": True,
-                "supports_noop_reset": True,
-                "supports_state_catalog": True,
-                "supports_live_snapshots": True,
-                "supports_info_frame_stack": True,
-                "supports_per_lane_rgb": True,
+                "supported_transition_transports": ("numpy",),
+                "supports_async_step": False,
+                "supports_branching": False,
+                "supports_device_api": False,
+                "supports_emulator_ram": False,
                 "supports_enemy_variants": self._plus_scenario is not None,
+                "supports_fire_reset": False,
+                "supports_info_frame_stack": True,
+                "supports_live_snapshots": True,
+                "supports_maxpool_last_two": True,
+                "supports_noop_reset": True,
+                "supports_per_lane_rgb": render_mode == "rgb_array",
+                "supports_reward_clipping": True,
+                "supports_snapshot_codec": False,
+                "supports_state_catalog": True,
+                "supports_sticky_action_prob": True,
                 "supports_surface_variants": self._plus_scenario is not None,
             }
         )
@@ -1677,25 +1699,17 @@ class VizdoomTurboVecEnv(VectorEnv):
         infos["state_index"] = self._active_state_indices.copy()
         infos["_state_index"] = mask.copy()
         if self._plus_scenario is not None:
-            active_ids = self.active_enemy_variant_ids()
             for role_index, role in enumerate(self.enemy_variant_roles):
                 infos[f"{role}_variant_index"] = self._active_enemy_variant_indices[
                     :, role_index
                 ].copy()
                 infos[f"_{role}_variant_index"] = mask.copy()
-                infos[f"{role}_variant_id"] = np.asarray(active_ids[role], dtype=object)
-                infos[f"_{role}_variant_id"] = mask.copy()
-            active_surface_ids = self.active_surface_variant_ids()
             for role_index, role in enumerate(self.surface_variant_roles):
                 infos[f"{role}_variant_index"] = self._active_surface_variant_indices[
                     :, role_index
                 ].copy()
                 infos[f"_{role}_variant_index"] = mask.copy()
-                infos[f"{role}_variant_id"] = np.asarray(active_surface_ids[role], dtype=object)
-                infos[f"_{role}_variant_id"] = mask.copy()
-        source = np.full(self.num_envs, "environment", dtype=object)
-        source[snapshot_mask] = "snapshot"
-        infos["start_source"] = source
+        infos["start_source"] = snapshot_mask.astype(np.int8, copy=True)
         infos["_start_source"] = mask.copy()
         infos["noop_reset_count"] = noop_counts
         infos["_noop_reset_count"] = static_mask.copy()
@@ -1707,6 +1721,8 @@ class VizdoomTurboVecEnv(VectorEnv):
         actions: Any,
         out: np.ndarray | None = None,
     ) -> np.ndarray:
+        if not isinstance(actions, np.ndarray):
+            raise TypeError("actions must be a NumPy array")
         if self._custom_actions is not None:
             values = np.asarray(actions, dtype=np.int64).reshape(-1)
             if values.shape != (self.num_envs,):
@@ -1822,9 +1838,7 @@ class VizdoomTurboVecEnv(VectorEnv):
                 self._native_terminal_palettes,
                 self._native_background_api,
                 self._native_reset_start_api,
-                self._native_reset_seeds
-                if self._native_reset_start_api is not None
-                else None,
+                self._native_reset_seeds if self._native_reset_start_api is not None else None,
             )
             rewards[...] = self._native_rewards
             terminated[...] = self._native_terminated

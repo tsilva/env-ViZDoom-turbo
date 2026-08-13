@@ -156,9 +156,14 @@ env = VizdoomTurboVecEnv(
     },
 )
 observations, infos = env.reset(seed=7)
-print(infos["target_variant_id"])
-print(infos["texture_set_variant_id"])
+print(infos["target_variant_index"])
+print(infos["texture_set_variant_index"])
 ```
+
+Transition infos stay numeric and portable. Resolve those indices through the
+immutable `enemy_variants` and `surface_variants` catalogs, or use
+`active_enemy_variant_ids()` and `active_surface_variant_ids()` outside the
+transition path when human-readable IDs are needed.
 
 Each non-original texture-set choice changes all three room surfaces together,
 so a lane cannot mix materials from different themes. Omitting either variant
@@ -199,11 +204,11 @@ env = VizdoomTurboVecEnv(
     },
 )
 observations, infos = env.reset(seed=7)
-print(infos["shooter_variant_id"])
-print(infos["fighter_variant_id"])
-print(infos["wall_variant_id"])
-print(infos["floor_variant_id"])
-print(infos["ceiling_variant_id"])
+print(infos["shooter_variant_index"])
+print(infos["fighter_variant_index"])
+print(infos["wall_variant_index"])
+print(infos["floor_variant_index"])
+print(infos["ceiling_variant_index"])
 ```
 
 Selection is uniform within each configured role, reproducible under
@@ -250,11 +255,12 @@ repairing only wrap axes that exceed the seam threshold. Legacy generated grids
 remain supported through `--grid-row` and `--grid-column`; source and processed
 comparison grids live with the editable Defend the Line Plus scenario sources.
 
-## Turbo Vector API v1
+## Turbo Vector API v2
 
-`VizdoomTurboVecEnv` implements the strict Turbo Vector API v1:
+`VizdoomTurboVecEnv` implements the strict Turbo Vector API v2:
 
-- `metadata["turbo_api_version"]` is `1`, and `metadata["render_modes"]`
+- `metadata["turbo_api_version"]` is `2`,
+  `metadata["transition_transport"]` is `"numpy"`, and `metadata["render_modes"]`
   advertises `rgb_array`.
 - Immutable `capabilities` and `signal_schema` declarations describe supported
   features and the dtype, shape, and reset/step availability of every signal.

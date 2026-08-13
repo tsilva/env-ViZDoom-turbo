@@ -214,7 +214,7 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
     parameters = inspect.signature(VizdoomTurboVecEnv).parameters
     assert parameters["use_fire_reset"].default is False
     assert parameters["render_mode"].default is None
-    expected = {
+    expected = (
         "game",
         "state",
         "scenario",
@@ -228,6 +228,7 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
         "num_envs",
         "num_threads",
         "rom_path",
+        "transport",
         "obs_copy",
         "obs_resize",
         "obs_crop",
@@ -246,14 +247,55 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
         "info_filter",
         "info_frame_stack_keys",
         "state_catalog",
+        "doom_map",
+        "doom_skill",
+        "game_args",
+        "game_variables",
         "enemy_variants",
         "surface_variants",
-    }
-    assert expected <= set(parameters)
+        "treat_episode_timeout_as_truncation",
+        "vizdoom_config",
+    )
+    assert tuple(parameters) == expected
+    assert tuple(parameter.default for parameter in tuple(parameters.values())[:32]) == (
+        inspect.Parameter.empty,
+        None,
+        None,
+        None,
+        "default",
+        False,
+        1,
+        "stable",
+        "image",
+        None,
+        1,
+        None,
+        None,
+        "default",
+        "safe_view",
+        (84, 84),
+        None,
+        "remove",
+        0,
+        True,
+        "area",
+        "chw",
+        4,
+        4,
+        False,
+        0,
+        False,
+        0.0,
+        False,
+        "all",
+        None,
+        None,
+    )
     assert VizDoomTurboVecEnv is VizdoomTurboVecEnv
     assert issubclass(VizdoomTurboVecEnv, gym.vector.VectorEnv)
     assert VizdoomTurboVecEnv.metadata["autoreset_mode"] is AutoresetMode.DISABLED
-    assert VizdoomTurboVecEnv.metadata["turbo_api_version"] == 1
+    assert VizdoomTurboVecEnv.metadata["turbo_api_version"] == 2
+    assert VizdoomTurboVecEnv.metadata["transition_transport"] == "numpy"
     assert gym.spec("VizdoomBasic-Turbo-v0").vector_entry_point == (
         "vizdoom_turbo:VizdoomTurboVecEnv"
     )
@@ -513,9 +555,7 @@ def test_basic_plus_samples_coherent_texture_sets_and_targets() -> None:
                 "verdant-ruin-v1",
             )
         }
-        assert set(left.active_enemy_variant_ids()["target"]) == set(
-            left.enemy_variants["target"]
-        )
+        assert set(left.active_enemy_variant_ids()["target"]) == set(left.enemy_variants["target"])
         assert set(left.active_surface_variant_ids()["texture_set"]) == set(
             left.surface_variants["texture_set"]
         )
@@ -523,6 +563,14 @@ def test_basic_plus_samples_coherent_texture_sets_and_targets() -> None:
         assert left.active_surface_variant_ids() == right.active_surface_variant_ids()
         assert left.capabilities["supports_enemy_variants"] is True
         assert left.capabilities["supports_surface_variants"] is True
+        for name in ("target_variant_index", "texture_set_variant_index"):
+            assert left.signal_schema[name] == {
+                "dtype": "int32",
+                "shape": (),
+                "available_on_reset": True,
+                "available_on_step": False,
+            }
+            assert left_infos[name].dtype == np.int32
         assert len(left.enemy_variant_wad_sha256) == 64
         assert left.surface_variant_wad_sha256 == left.enemy_variant_wad_sha256
 
@@ -539,8 +587,8 @@ def test_basic_plus_samples_coherent_texture_sets_and_targets() -> None:
             left.active_surface_variant_ids()["texture_set"][1:]
             == before_surface_ids["texture_set"][1:]
         )
-        assert masked_infos["_target_variant_id"].tolist() == mask.tolist()
-        assert masked_infos["_texture_set_variant_id"].tolist() == mask.tolist()
+        assert masked_infos["_target_variant_index"].tolist() == mask.tolist()
+        assert masked_infos["_texture_set_variant_index"].tolist() == mask.tolist()
     finally:
         left.close()
         right.close()
@@ -614,11 +662,14 @@ def test_basic_plus_variants_change_pixels(
         original_observations, _original_infos = original.reset(seed=613)
         variant_observations, variant_infos = variant.reset(seed=613)
         assert np.any(variant_observations != original_observations)
-        assert variant_infos["target_variant_id"].tolist() == [enemy_id, enemy_id]
-        assert variant_infos["texture_set_variant_id"].tolist() == [
-            texture_set_id,
-            texture_set_id,
-        ]
+        np.testing.assert_array_equal(
+            variant_infos["target_variant_index"],
+            variant.active_enemy_variant_indices()[:, 0],
+        )
+        np.testing.assert_array_equal(
+            variant_infos["texture_set_variant_index"],
+            variant.active_surface_variant_indices()[:, 0],
+        )
         actions = np.zeros(2, dtype=np.int64)
         for _ in range(8):
             original_transition = original.step(actions)
@@ -777,8 +828,14 @@ def test_defend_line_plus_original_variant_is_mechanically_exact() -> None:
             "shooter": ("original", "original"),
             "fighter": ("original", "original"),
         }
-        assert plus_infos["shooter_variant_id"].tolist() == ["original", "original"]
-        assert plus_infos["fighter_variant_id"].tolist() == ["original", "original"]
+        np.testing.assert_array_equal(
+            plus_infos["shooter_variant_index"],
+            plus.active_enemy_variant_indices()[:, 0],
+        )
+        np.testing.assert_array_equal(
+            plus_infos["fighter_variant_index"],
+            plus.active_enemy_variant_indices()[:, 1],
+        )
         assert dict(plus.active_surface_variant_ids()) == {
             "wall": ("original", "original"),
             "floor": ("original", "original"),
@@ -1027,11 +1084,11 @@ def test_defend_line_plus_default_mix_is_seed_reproducible() -> None:
         for role in left.surface_variant_roles:
             assert after_surface_ids[role][1:] == before_surface_ids[role][1:]
         np.testing.assert_array_equal(left_observations[1:], before_unmasked)
-        assert left_infos["_shooter_variant_id"].tolist() == mask.tolist()
-        assert left_infos["_fighter_variant_id"].tolist() == mask.tolist()
-        assert left_infos["_wall_variant_id"].tolist() == mask.tolist()
-        assert left_infos["_floor_variant_id"].tolist() == mask.tolist()
-        assert left_infos["_ceiling_variant_id"].tolist() == mask.tolist()
+        assert left_infos["_shooter_variant_index"].tolist() == mask.tolist()
+        assert left_infos["_fighter_variant_index"].tolist() == mask.tolist()
+        assert left_infos["_wall_variant_index"].tolist() == mask.tolist()
+        assert left_infos["_floor_variant_index"].tolist() == mask.tolist()
+        assert left_infos["_ceiling_variant_index"].tolist() == mask.tolist()
     finally:
         left.close()
         right.close()
@@ -1074,13 +1131,38 @@ def test_plus_snapshot_restore_preserves_appearance(game: str) -> None:
         env.close()
 
 
-def test_turbo_api_v1_capabilities_signals_ownership_and_rendering() -> None:
+def test_turbo_api_v2_capabilities_signals_ownership_and_rendering() -> None:
     env = make_env(render_mode="rgb_array")
     try:
-        env.reset(seed=19)
+        observations, infos = env.reset(seed=19)
         assert env.observation_ownership == "safe_view"
         assert env.observation_buffer_depth == 2
         assert env.live_snapshots_deterministic is True
+        assert tuple(env.capabilities) == (
+            "supported_action_modes",
+            "supported_observation_layouts",
+            "supported_observation_color_modes",
+            "supported_resize_algorithms",
+            "supported_crop_modes",
+            "supported_observation_copy_modes",
+            "supported_transition_transports",
+            "supports_async_step",
+            "supports_branching",
+            "supports_device_api",
+            "supports_emulator_ram",
+            "supports_enemy_variants",
+            "supports_fire_reset",
+            "supports_info_frame_stack",
+            "supports_live_snapshots",
+            "supports_maxpool_last_two",
+            "supports_noop_reset",
+            "supports_per_lane_rgb",
+            "supports_reward_clipping",
+            "supports_snapshot_codec",
+            "supports_state_catalog",
+            "supports_sticky_action_prob",
+            "supports_surface_variants",
+        )
         assert env.capabilities["supported_action_modes"] == (
             "all",
             "filtered",
@@ -1088,6 +1170,17 @@ def test_turbo_api_v1_capabilities_signals_ownership_and_rendering() -> None:
             "custom_discrete",
         )
         assert tuple(env.signal_schema) == tuple(env._info_keys)
+        for name, spec in env.signal_schema.items():
+            assert isinstance(spec["dtype"], str)
+            assert isinstance(spec["shape"], tuple)
+            if spec["available_on_reset"]:
+                assert np.dtype(spec["dtype"]) == infos[name].dtype
+                assert infos[name].shape[1:] == spec["shape"]
+        with pytest.raises(TypeError, match="NumPy array"):
+            env.step([0] * env.num_envs)
+        transition = env.step(np.zeros(env.num_envs, dtype=np.int64))
+        for value in (observations, *transition[:4], *infos.values(), *transition[4].values()):
+            assert value.dtype != np.dtype(object)
         images = env.get_images()
         assert len(images) == env.num_envs
         assert all(image.dtype == np.uint8 and image.ndim == 3 for image in images)
@@ -1103,6 +1196,18 @@ def test_rendering_is_disabled_by_default() -> None:
         assert env.render() is None
         assert env.render_lane(1) is None
         assert env.get_images() == [None, None]
+    finally:
+        env.close()
+
+
+def test_v2_shared_defaults_resolve_filtered_chw_stack() -> None:
+    env = VizdoomTurboVecEnv("VizdoomBasic-v1")
+    try:
+        observations, infos = env.reset(seed=23)
+        assert observations.shape == (1, 4, 84, 84)
+        assert env.action_mode == "filtered"
+        assert infos["state_index"].tolist() == [0]
+        assert env.render() is None
     finally:
         env.close()
 
@@ -1433,7 +1538,8 @@ def test_snapshot_restore_replays_identical_transition() -> None:
                 "snapshots": snapshots,
             }
         )
-        assert infos["start_source"].tolist() == ["snapshot", "snapshot"]
+        assert infos["start_source"].dtype == np.int8
+        assert infos["start_source"].tolist() == [1, 1]
         assert restored.shape == expected[0].shape
         actual = env.step(actions)
 
@@ -1651,15 +1757,11 @@ def test_native_pipeline_matches_fallback_through_terminals_and_masked_resets(
         assert native._native_stepper is not None
         assert native._use_indexed_native is True
         assert all(
-            game.get_screen_format() == vzd.ScreenFormat.DOOM_256_COLORS8
-            for game in native._games
+            game.get_screen_format() == vzd.ScreenFormat.DOOM_256_COLORS8 for game in native._games
         )
         assert fallback._native_stepper is None
         assert fallback._use_indexed_native is False
-        assert all(
-            game.get_screen_format() == vzd.ScreenFormat.RGB24
-            for game in fallback._games
-        )
+        assert all(game.get_screen_format() == vzd.ScreenFormat.RGB24 for game in fallback._games)
         native_observations, native_infos = native.reset(seed=71)
         fallback_observations, fallback_infos = fallback.reset(seed=71)
         np.testing.assert_array_equal(native_observations, fallback_observations)
@@ -1781,10 +1883,7 @@ def test_disabled_info_frame_stack_has_no_storage_and_current_infos_are_unchange
                     disabled_transition[4][key],
                     enabled_transition[4][key],
                 )
-                assert (
-                    disabled_transition[4][key].tobytes()
-                    == enabled_transition[4][key].tobytes()
-                )
+                assert disabled_transition[4][key].tobytes() == enabled_transition[4][key].tobytes()
     finally:
         disabled.close()
         enabled.close()

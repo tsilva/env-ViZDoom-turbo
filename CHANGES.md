@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Migrate `VizdoomTurboVecEnv` to the breaking Turbo Vector API v2 common
+  constructor with a required `game`, resolved NumPy transport, exact
+  capabilities, and portable signal schema.
+- Standardize reset infos to numeric dtypes and expose appearance IDs only
+  through immutable catalogs and active-ID lookup methods; transition infos
+  now contain numeric variant indices only.
+- Remove the catch-all constructor argument path so unknown options receive
+  Python's normal `TypeError`.
 
 ## 1.3.0.post25 - 2026-08-13
 
