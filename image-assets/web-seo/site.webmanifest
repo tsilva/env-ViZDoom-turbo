@@ -1,6 +1,6 @@
 {
   "name": "env-ViZDoom-turbo",
-  "short_name": "ViZDoom turbo",
+  "short_name": "env-ViZDoom",
   "icons": [
     {
       "src": "android-chrome-192.png",
