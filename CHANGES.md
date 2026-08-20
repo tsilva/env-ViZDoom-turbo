@@ -4,6 +4,12 @@
 
 - Nothing yet.
 
+## 1.3.0.post27 - 2026-08-20
+
+- Rename package to env-vizdoom-turbo.
+- Fix macOS wheel repair after package rename.
+- Keep ViZDoom primary release binary-only.
+
 ## 1.3.0.post26 - 2026-08-13
 
 - Migrate `VizdoomTurboVecEnv` to the breaking Turbo Vector API v2 common
