@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate, commit, tag, and push a vizdoom-turbo release."""
+"""Validate, commit, tag, and push an env-vizdoom-turbo release."""
 
 from __future__ import annotations
 
@@ -31,6 +31,10 @@ RELEASE_FILES = (
 VERSION_RE = re.compile(
     r"^(?P<base>[0-9]+\.[0-9]+\.[0-9]+)(?:\.post(?P<post>[0-9]+))?$"
 )
+PACKAGE_NAME = "env-vizdoom-turbo"
+TAG_PREFIX = "env-vizdoom-turbo-v"
+MIGRATION_VERSION = "1.3.0.post27"
+REDIRECT_PACKAGE = "vizdoom-turbo"
 
 
 def run(
@@ -98,7 +102,7 @@ def pypi_version_is_unused(version: str) -> bool:
     output = "\n".join(part for part in (result.stdout, result.stderr) if part)
     if result.returncode == 0:
         return True
-    if f"vizdoom-turbo=={version} already exists on PyPI" in output:
+    if f"{PACKAGE_NAME}=={version} already exists on PyPI" in output:
         return False
     raise subprocess.CalledProcessError(
         result.returncode,
@@ -129,6 +133,8 @@ def latest_release_tag() -> str | None:
                 "--abbrev=0",
                 "--match",
                 "vizdoom-turbo-v[0-9]*",
+                "--match",
+                "env-vizdoom-turbo-v[0-9]*",
             ]
         )
     except subprocess.CalledProcessError:
@@ -181,7 +187,7 @@ def target_version(args: argparse.Namespace) -> str:
     if args.to:
         version = args.to
     else:
-        current_tag = f"vizdoom-turbo-v{current}"
+        current_tag = f"{TAG_PREFIX}{current}"
         version = current
         current_base, _ = parse_version(current)
         if current_base != upstream_base:
@@ -196,6 +202,14 @@ def target_version(args: argparse.Namespace) -> str:
             "--allow-upstream-base-mismatch to override"
         )
     helper("check-pypi", "--version", version)
+    if version == MIGRATION_VERSION:
+        helper(
+            "check-pypi",
+            "--version",
+            version,
+            "--package",
+            REDIRECT_PACKAGE,
+        )
     return version
 
 
@@ -219,6 +233,7 @@ def generated_release_notes(base_ref: str | None) -> str:
             not subject
             or subject.startswith("Release v")
             or subject.startswith("Release vizdoom-turbo-v")
+            or subject.startswith("Release env-vizdoom-turbo-v")
             or subject in notes
         ):
             continue
@@ -302,7 +317,7 @@ def run_checks(skip_checks: bool, version: str) -> None:
     else:
         run(["uv", "build", "--wheel"], env=env)
         output = PACKAGE_ROOT / "dist"
-    wheels = sorted(output.glob(f"vizdoom_turbo-{version}-*.whl"))
+    wheels = sorted(output.glob(f"env_vizdoom_turbo-{version}-*.whl"))
     if len(wheels) != 1:
         raise SystemExit(f"expected one local release wheel, found {len(wheels)}")
     helper("smoke-wheel", str(wheels[0]), "--version", version)
@@ -310,7 +325,7 @@ def run_checks(skip_checks: bool, version: str) -> None:
 
 
 def create_commit_and_tag(version: str) -> str:
-    tag = f"vizdoom-turbo-v{version}"
+    tag = f"{TAG_PREFIX}{version}"
     if tag_exists(tag):
         raise SystemExit(f"tag already exists: {tag}")
     run(

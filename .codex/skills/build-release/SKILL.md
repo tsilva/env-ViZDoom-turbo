@@ -1,6 +1,6 @@
 ---
 name: build-release
-description: Launch and monitor a vizdoom-turbo release. Use when the user asks to build, tag, publish, or cut a PyPI release; requests a specific version; invokes /build-release; or asks whether a vizdoom-turbo release is live.
+description: Launch and monitor an env-vizdoom-turbo release. Use when the user asks to build, tag, publish, or cut a PyPI release; requests a specific version; invokes /build-release; or asks whether an env-vizdoom-turbo release is live.
 ---
 
 # Build Release
@@ -19,7 +19,7 @@ pending; otherwise the release script selects the next post release.
 The release script requires a clean tree synchronized with its upstream, an
 unused PyPI version, consistent Python and Rust metadata, locked dependencies,
 passing local checks, and a valid changelog. It commits the release metadata,
-tags `vizdoom-turbo-v<version>`, and atomically pushes the branch and tag.
+tags `env-vizdoom-turbo-v<version>`, and atomically pushes the branch and tag.
 
 The tag workflow builds and audits CPython 3.14 wheels for exactly
 `macos-arm64` and `linux-x86_64`, plus a source distribution. It publishes with
@@ -59,7 +59,7 @@ The version base must match the exact `vizdoom` dependency in
 GitHub Actions run:
 
 ```bash
-release_sha="$(git rev-list -n 1 vizdoom-turbo-v<version>)"
+release_sha="$(git rev-list -n 1 env-vizdoom-turbo-v<version>)"
 gh run list --workflow release.yml --commit "$release_sha" --limit 5 \
   --json databaseId,status,conclusion,event,headBranch,headSha,displayTitle,url
 gh run watch <run-id> --exit-status
@@ -80,7 +80,7 @@ import time
 import urllib.error
 import urllib.request
 
-package = "vizdoom-turbo"
+package = "env-vizdoom-turbo"
 version = sys.argv[1]
 url = f"https://pypi.org/pypi/{package}/json"
 for attempt in range(60):

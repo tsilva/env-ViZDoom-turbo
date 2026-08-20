@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "vizdoom-turbo-v*"
+      - "env-vizdoom-turbo-v*"
   workflow_dispatch:
     inputs:
       ref:
@@ -63,7 +63,7 @@ jobs:
           version="$(uv run python -c \
             "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
           if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            tag_version="${GITHUB_REF_NAME#vizdoom-turbo-v}"
+            tag_version="${GITHUB_REF_NAME#env-vizdoom-turbo-v}"
             if [[ "$tag_version" != "$version" ]]; then
               echo "Tag $GITHUB_REF_NAME does not match project version $version" >&2
               exit 1
@@ -73,9 +73,11 @@ jobs:
 
       - name: Check release metadata
         working-directory: turbo
-        run: >-
-          uv run python ../.codex/skills/build-release/scripts/release_build.py
-          check-version --version "${{ steps.version.outputs.version }}"
+        run: |
+          uv run python ../.codex/skills/build-release/scripts/release_build.py \
+            check-version --version "${{ steps.version.outputs.version }}"
+          uv run python scripts/redirect_release.py check-source \
+            --version "${{ steps.version.outputs.version }}"
 
       - name: Check PyPI version is unused
         if: github.event_name == 'push' && github.ref_type == 'tag'
@@ -83,6 +85,16 @@ jobs:
         run: >-
           uv run python ../.codex/skills/build-release/scripts/release_build.py
           check-pypi --version "${{ steps.version.outputs.version }}"
+
+      - name: Check migration package version is unused
+        if: >-
+          github.event_name == 'push' && github.ref_type == 'tag' &&
+          steps.version.outputs.version == '1.3.0.post27'
+        working-directory: turbo
+        run: >-
+          uv run python ../.codex/skills/build-release/scripts/release_build.py
+          check-pypi --package vizdoom-turbo
+          --version "${{ steps.version.outputs.version }}"
 
       - name: Run source checks
         working-directory: turbo
@@ -215,13 +227,39 @@ jobs:
           uv run python ../.codex/skills/build-release/scripts/release_build.py \
             final-check --version "${{ needs.validate.outputs.version }}" \
             wheelhouse/*.whl
+
+      - name: Build and audit source distribution
+        working-directory: turbo
+        run: |
+          set -euo pipefail
+          uv build --sdist --out-dir dist
+          uv run python ../.codex/skills/build-release/scripts/release_build.py \
+            audit-sdist "dist/env_vizdoom_turbo-${{ needs.validate.outputs.version }}.tar.gz" \
+            --version "${{ needs.validate.outputs.version }}"
           uv run twine check dist/*
+
+      - name: Organize primary distributions
+        shell: bash
+        working-directory: turbo
+        run: |
+          set -euo pipefail
+          mkdir -p publish/primary
+          mv dist/* publish/primary/
+
+      - name: Build and audit migration distributions
+        if: needs.validate.outputs.version == '1.3.0.post27'
+        working-directory: turbo
+        run: >-
+          uv run python scripts/redirect_release.py
+          build
+          --version "${{ needs.validate.outputs.version }}"
+          --out-dir publish/redirect
 
       - name: Upload audited distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-v${{ needs.validate.outputs.version }}
-          path: turbo/dist/*
+          path: turbo/publish/**
           if-no-files-found: error
 
   publish:
@@ -233,7 +271,7 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: pypi
-      url: https://pypi.org/p/vizdoom-turbo
+      url: https://pypi.org/p/env-vizdoom-turbo
     permissions:
       id-token: write
     steps:
@@ -241,12 +279,18 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-v${{ needs.validate.outputs.version }}
-          path: turbo/dist
+          path: turbo/publish
 
-      - name: Publish package distributions to PyPI
+      - name: Publish primary package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
-          packages-dir: turbo/dist
+          packages-dir: turbo/publish/primary
+
+      - name: Publish migration package distributions to PyPI
+        if: needs.validate.outputs.version == '1.3.0.post27'
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        with:
+          packages-dir: turbo/publish/redirect
 
   github-release:
     name: Publish GitHub release
@@ -262,14 +306,21 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-v${{ needs.validate.outputs.version }}
-          path: turbo/dist
+          path: turbo/publish
+
+      - name: Flatten release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p turbo/release-assets
+          find turbo/publish -type f -exec cp {} turbo/release-assets/ \;
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "${GITHUB_REF_NAME}"
-          turbo/dist/*
+          turbo/release-assets/*
           --repo "${GITHUB_REPOSITORY}"
           --verify-tag
           --generate-notes

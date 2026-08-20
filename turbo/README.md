@@ -1,10 +1,10 @@
 <div align="center">
   <strong>⚡ High-throughput ViZDoom rollouts, native-vector by design. ⚡</strong>
   <br /><br />
-  <img src="https://raw.githubusercontent.com/tsilva/ViZDoom-turbo/turbo/logo.png" alt="ViZDoom-turbo" width="420" />
+  <img src="https://raw.githubusercontent.com/tsilva/env-ViZDoom-turbo/turbo/logo.png" alt="env-ViZDoom-turbo" width="420" />
 </div>
 
-`vizdoom-turbo` is a Python library for reinforcement-learning researchers who need fast, parallel ViZDoom environments. It provides a Gymnasium vector environment that can be used directly or selected as an isolated environment provider in `rlab`.
+`env-ViZDoom-turbo` is a Python library for reinforcement-learning researchers who need fast, parallel ViZDoom environments. It provides a Gymnasium vector environment that can be used directly or selected as an isolated environment provider in GradLab.
 
 Each vector lane owns an independent `DoomGame`. Lanes advance concurrently through ViZDoom's native API, while a bounded Rust worker pool applies max-pooling, crop, resize, grayscale conversion, frame-stack rotation, and final CHW/HWC layout in one GIL-free native call. Resize geometry and area-sampling tables are compiled once per environment instead of rebuilt per step.
 
@@ -13,14 +13,14 @@ Each vector lane owns an independent `DoomGame`. Lanes advance concurrently thro
 Install the published package from PyPI:
 
 ```bash
-uv add vizdoom-turbo
+uv add env-vizdoom-turbo
 ```
 
 To work from source:
 
 ```bash
-git clone git@github.com:tsilva/ViZDoom-turbo.git
-cd ViZDoom-turbo/turbo
+git clone git@github.com:tsilva/env-ViZDoom-turbo.git
+cd env-ViZDoom-turbo/turbo
 uv sync --all-extras
 ```
 
@@ -287,7 +287,7 @@ Install this distribution in the `rlab` runtime, then select its provider:
 
 ```yaml
 environment:
-  env_provider: vizdoom-turbo
+  env_provider: env-vizdoom-turbo
   env_config:
     game: VizdoomBasic-v1
     state: default
@@ -347,7 +347,7 @@ available for focused deterministic trace checks.
 
 ## Architecture
 
-![vizdoom-turbo architecture](https://raw.githubusercontent.com/tsilva/ViZDoom-turbo/turbo/architecture.png)
+![env-ViZDoom-turbo architecture](https://raw.githubusercontent.com/tsilva/env-ViZDoom-turbo/turbo/architecture.png)
 
 ## License
 

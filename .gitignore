@@ -122,7 +122,7 @@ src/vizdoom/zlib/CTestTestfile.cmake
 # CLion & PyCharm
 **/.idea
 
-# ViZDoom-turbo Rust/maturin package
+# env-ViZDoom-turbo Rust/maturin package
 turbo/.uv-cache/
 turbo/python/vizdoom/
 turbo/target/

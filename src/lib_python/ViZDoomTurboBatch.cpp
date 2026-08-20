@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2026 by the ViZDoom-turbo contributors
+ Copyright (C) 2026 by the env-ViZDoom-turbo contributors
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal

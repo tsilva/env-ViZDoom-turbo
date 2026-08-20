@@ -45,7 +45,7 @@ def build_sdist(
     config_settings: Mapping[str, Any] | None = None,
 ) -> str:
     raise RuntimeError(
-        "vizdoom-turbo source distributions cannot contain portable native "
+        "env-vizdoom-turbo source distributions cannot contain portable native "
         "ViZDoom binaries; build a wheel from the complete repository checkout"
     )
 

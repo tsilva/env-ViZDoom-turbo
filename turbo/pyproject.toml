@@ -12,8 +12,8 @@ build-backend = "build_backend"
 backend-path = ["."]
 
 [project]
-name = "vizdoom-turbo"
-version = "1.3.0.post26"
+name = "env-vizdoom-turbo"
+version = "1.3.0.post27"
 description = "Native-vector Gymnasium environments for high-throughput ViZDoom rollouts"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
@@ -47,11 +47,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tsilva/ViZDoom-turbo-fork"
-Documentation = "https://github.com/tsilva/ViZDoom-turbo-fork/tree/turbo#readme"
-Repository = "https://github.com/tsilva/ViZDoom-turbo-fork.git"
-Issues = "https://github.com/tsilva/ViZDoom-turbo-fork/issues"
-Changelog = "https://github.com/tsilva/ViZDoom-turbo-fork/blob/turbo/CHANGES.md"
+Homepage = "https://github.com/tsilva/env-ViZDoom-turbo"
+Documentation = "https://github.com/tsilva/env-ViZDoom-turbo/tree/turbo#readme"
+Repository = "https://github.com/tsilva/env-ViZDoom-turbo.git"
+Issues = "https://github.com/tsilva/env-ViZDoom-turbo/issues"
+Changelog = "https://github.com/tsilva/env-ViZDoom-turbo/blob/turbo/CHANGES.md"
 
 [project.optional-dependencies]
 dev = [

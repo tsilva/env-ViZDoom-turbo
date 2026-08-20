@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and audit vizdoom-turbo release distributions."""
+"""Build and audit env-vizdoom-turbo release distributions."""
 
 from __future__ import annotations
 
@@ -22,7 +22,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKAGE_ROOT = REPO_ROOT / "turbo"
-PACKAGE_NAME = "vizdoom-turbo"
+PACKAGE_NAME = "env-vizdoom-turbo"
+CARGO_PACKAGE_NAME = "vizdoom-turbo"
 IMPORT_NAME = "vizdoom_turbo"
 EXTENSION_NAME = "_vizdoom_turbo"
 RELEASE_PLATFORMS = (
@@ -73,11 +74,11 @@ def cargo_lock_version() -> str:
     packages = lock.get("package", [])
     assert isinstance(packages, list)
     for package in packages:
-        if isinstance(package, dict) and package.get("name") == PACKAGE_NAME:
+        if isinstance(package, dict) and package.get("name") == CARGO_PACKAGE_NAME:
             version = package.get("version")
             assert isinstance(version, str)
             return version
-    raise SystemExit(f"{PACKAGE_NAME!r} is missing from Cargo.lock")
+    raise SystemExit(f"{CARGO_PACKAGE_NAME!r} is missing from Cargo.lock")
 
 
 def parse_version(version: str) -> tuple[str, int]:
@@ -185,8 +186,8 @@ def bump_version(args: argparse.Namespace) -> None:
     print(target)
 
 
-def fetch_pypi() -> dict[str, object]:
-    url = f"https://pypi.org/pypi/{PACKAGE_NAME}/json"
+def fetch_pypi(package: str = PACKAGE_NAME) -> dict[str, object]:
+    url = f"https://pypi.org/pypi/{package}/json"
     try:
         with urllib.request.urlopen(url, timeout=20) as response:
             data = json.load(response)
@@ -201,12 +202,13 @@ def fetch_pypi() -> dict[str, object]:
 
 def check_pypi(args: argparse.Namespace) -> None:
     parse_version(args.version)
-    releases = fetch_pypi().get("releases", {})
+    package = args.package or PACKAGE_NAME
+    releases = fetch_pypi(package).get("releases", {})
     if not isinstance(releases, dict):
         raise SystemExit("unexpected PyPI releases payload")
     if releases.get(args.version):
-        raise SystemExit(f"{PACKAGE_NAME}=={args.version} already exists on PyPI")
-    print(f"{PACKAGE_NAME}=={args.version} is unused on PyPI")
+        raise SystemExit(f"{package}=={args.version} already exists on PyPI")
+    print(f"{package}=={args.version} is unused on PyPI")
 
 
 def wheelhouse(version: str, platform: str) -> Path:
@@ -503,7 +505,7 @@ from importlib.metadata import version
 from vizdoom_turbo import VizdoomTurboVecEnv, scenario_buttons
 
 print("smoke: metadata", flush=True)
-assert version("vizdoom-turbo") == %r
+assert version("env-vizdoom-turbo") == %r
 print("smoke: scenario metadata", flush=True)
 assert scenario_buttons("VizdoomBasic-v1") == ("MOVE_LEFT", "MOVE_RIGHT", "ATTACK")
 print("smoke: construct environment", flush=True)
@@ -614,6 +616,7 @@ def main() -> None:
 
     pypi = commands.add_parser("check-pypi")
     pypi.add_argument("--version", required=True)
+    pypi.add_argument("--package")
     pypi.set_defaults(func=check_pypi)
 
     build = commands.add_parser("build-platform")

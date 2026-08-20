@@ -25,7 +25,7 @@ _COMPATIBILITY_ENV_SPECS = {
 }
 
 try:
-    __version__ = version("vizdoom-turbo")
+    __version__ = version("env-vizdoom-turbo")
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
