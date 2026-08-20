@@ -238,6 +238,7 @@ PYBIND11_MODULE(vizdoom, vz){
 
     pyb::enum_<GameVariable>(vz, "GameVariable", docstrings::GameVariable)
         ENUM_VAL_2_PYT(KILLCOUNT)
+        ENUM_VAL_2_PYT(PLAYER_KILLCOUNT)
         ENUM_VAL_2_PYT(ITEMCOUNT)
         ENUM_VAL_2_PYT(SECRETCOUNT)
         ENUM_VAL_2_PYT(FRAGCOUNT)

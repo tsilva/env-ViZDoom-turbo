@@ -439,6 +439,7 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 		if (CountsAsKill())
 		{ // count for intermission
 			source->player->killcount++;
+			VIZ_LogKill(source); //VIZDOOM_CODE
 		}
 
 		// Don't count any frags at level start, because they're just telefrags

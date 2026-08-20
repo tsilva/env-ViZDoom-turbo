@@ -1,9 +1,9 @@
 ---
 name: optimize-sps
-description: Iteratively optimize ViZDoom-turbo environment SPS to a user-specified multiplier using Goal Mode, TurboBench evidence bundles, exact parity gates, component profiling, and packaging validation. Use when asked to pursue another throughput multiplier, optimize the immutable TurboBench vizdoom/basic-v1 profile, invoke $optimize-sps, or continue SPS performance work until a measured target or defensible upper bound is reached.
+description: Iteratively optimize env-ViZDoom-turbo environment SPS to a user-specified multiplier using Goal Mode, TurboBench evidence bundles, exact parity gates, component profiling, and packaging validation. Use when asked to pursue another throughput multiplier, optimize the immutable TurboBench vizdoom/basic-v1 profile, invoke $optimize-sps, or continue SPS performance work until a measured target or defensible upper bound is reached.
 ---
 
-# Optimize ViZDoom SPS
+# Optimize env-ViZDoom-turbo SPS
 
 Pursue a real environment-throughput improvement without training or model
 inference. Treat measurement integrity and exact behavior as hard constraints.
@@ -53,9 +53,9 @@ supplies another profile. Never silently weaken a setting to obtain the target.
 5. Inspect these sibling implementations when available:
 
 ```text
-/Users/tsilva/repos/tsilva/SuperMarioBros-Nes-turbo
-/Users/tsilva/repos/tsilva/breakout-turbo-env
-/Users/tsilva/repos/tsilva/stable-retro-turbo
+/Users/tsilva/repos/tsilva/env-SuperMarioBrosNes-turbo-emu
+/Users/tsilva/repos/tsilva/env-BreakoutAtari2600-turbo-native
+/Users/tsilva/repos/tsilva/env-StableRetro-turbo
 ```
 
 If a reference path is unavailable, record that once and continue.
@@ -82,7 +82,7 @@ candidate bundle:
 ```text
 turbobench doctor vizdoom/basic-v1
 turbobench compare vizdoom/basic-v1 \
-  --left vizdoom-turbo@checkout:/absolute/path/to/checkout \
+  --left env-vizdoom-turbo@checkout:/absolute/path/to/checkout \
   --right vizdoom@<compatible-version> \
   --output /absolute/path/to/result
 turbobench verify /absolute/path/to/result

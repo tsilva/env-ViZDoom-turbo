@@ -194,6 +194,29 @@ def make_history_env(**overrides) -> VizdoomTurboVecEnv:
     return VizdoomTurboVecEnv(**options)
 
 
+def test_player_killcount_is_an_explicit_vector_info_signal() -> None:
+    env = make_exact_env(
+        num_envs=2,
+        num_threads=2,
+        info_filter={"mode": "all", "keys": ["killcount", "player_killcount"]},
+        game_variables=["KILLCOUNT", "PLAYER_KILLCOUNT"],
+    )
+    try:
+        _observations, infos = env.reset(seed=7)
+
+        assert env.game_variable_names[-2:] == ("killcount", "player_killcount")
+        assert infos["killcount"].tolist() == [0.0, 0.0]
+        assert infos["player_killcount"].tolist() == [0.0, 0.0]
+        assert env.signal_schema["player_killcount"] == {
+            "dtype": "float64",
+            "shape": (),
+            "available_on_reset": True,
+            "available_on_step": True,
+        }
+    finally:
+        env.close()
+
+
 def assert_info_equal(actual: dict[str, np.ndarray], expected: dict[str, np.ndarray]) -> None:
     assert actual.keys() == expected.keys()
     for key in actual:

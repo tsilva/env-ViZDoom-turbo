@@ -130,6 +130,17 @@ void VIZ_LogDmg(AActor *target, AActor *inflictor, AActor *source, int amount){
     }
 }
 
+void VIZ_LogKill(AActor *source){
+    if(source == NULL || source->player == NULL) return;
+
+    for(size_t i = 0; i < VIZ_MAX_PLAYERS; ++i){
+        if(source->player == &players[i]){
+            ++vizPlayerLogger[i].killCount;
+            return;
+        }
+    }
+}
+
 
 /* Helper functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -450,6 +461,8 @@ void VIZ_GameStateUpdate(){
 void VIZ_GameStateUpdateVariables(){
 
     //VIZDOOM_CODE
+    vizGameStateSM->PLAYER_DIRECT_KILLCOUNT = vizPlayerLogger[VIZ_PLAYER_NUM].killCount;
+
     if (*viz_turbo_profile) {
         vizGameStateSM->MAP_REWARD = ACS_GlobalVars[0];
         vizGameStateSM->MAP_KILLCOUNT = level.killed_monsters;

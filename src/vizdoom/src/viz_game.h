@@ -62,6 +62,7 @@ struct VIZPlayerLogger{
     int attackCount;
     int selfInflictedDamege;
     int selfHitCount;
+    int killCount;
 
     VIZPlayerLogger(){
         this->reset();
@@ -75,6 +76,7 @@ struct VIZPlayerLogger{
         this->attackCount = 0;
         this->selfInflictedDamege = 0;
         this->selfHitCount = 0;
+        this->killCount = 0;
     }
 };
 
@@ -82,6 +84,8 @@ extern unsigned int vizUniqueObjectsCount;
 extern VIZPlayerLogger vizPlayerLogger[VIZ_MAX_PLAYERS];
 
 void VIZ_LogDmg(AActor *target, AActor *inflictor, AActor *source, int damage);
+
+void VIZ_LogKill(AActor *source);
 
 // All these structures should reflect structures in src/lib/ViZDoomSharedMemory.h
 struct VIZLabel{
@@ -237,6 +241,7 @@ struct VIZGameState{
     int PLAYER_HITS_TAKEN;
     int PLAYER_DAMAGECOUNT;
     int PLAYER_DAMAGE_TAKEN;
+    int PLAYER_DIRECT_KILLCOUNT;
 
     
     // TEXT CONSOLE LOG

@@ -92,6 +92,7 @@ namespace vizdoom {
     std::string gameVariableToString(GameVariable gameVariable){
         switch(gameVariable) {
             CASE_ENUM(KILLCOUNT)
+            CASE_ENUM(PLAYER_KILLCOUNT)
             CASE_ENUM(ITEMCOUNT)
             CASE_ENUM(SECRETCOUNT)
             CASE_ENUM(FRAGCOUNT)

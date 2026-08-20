@@ -197,6 +197,7 @@ namespace vizdoom {
 
     GameVariable ConfigLoader::stringToGameVariable(std::string str) {
         if (str == "killcount") return KILLCOUNT;
+        if (str == "player_killcount") return PLAYER_KILLCOUNT;
         if (str == "itemcount") return ITEMCOUNT;
         if (str == "secretcount") return SECRETCOUNT;
         if (str == "fragcount") return FRAGCOUNT;

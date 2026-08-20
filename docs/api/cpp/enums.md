@@ -132,6 +132,7 @@ Enum type that defines all variables that can be obtained from the game.
 
 ### Defined variables
 - **KILLCOUNT**             - Counts the number of monsters killed during the current episode. ~Killing other players/bots do not count towards this.~ From 1.1.5 killing other players/bots counts towards this.
+- **PLAYER_KILLCOUNT**      - Counts countable monsters whose killing blow is attributed to the player. Unlike **KILLCOUNT**, excludes monsters killed by infighting. env-ViZDoom-turbo extension.
 - **ITEMCOUNT**             - Counts the number of picked up items during the current episode.
 - **SECRETCOUNT**           - Counts the number of secret location/objects discovered during the current episode.
 - **FRAGCOUNT**             - Counts the number of players/bots killed, minus the number of committed suicides. Useful only in multiplayer mode.

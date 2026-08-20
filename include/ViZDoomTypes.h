@@ -368,6 +368,9 @@ namespace vizdoom{
         USER58,
         USER59,
         USER60,
+
+        /* env-ViZDoom-turbo variables */
+        PLAYER_KILLCOUNT,
     };
 
     enum Button {

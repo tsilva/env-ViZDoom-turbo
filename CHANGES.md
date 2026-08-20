@@ -94,7 +94,7 @@
 ## 1.3.0.post12 - 2026-07-28
 
 - +1.5x throughput improvement.
-- Merge branch 'turbo' of github.com:tsilva/ViZDoom-turbo into turbo.
+- Merge branch 'turbo' of github.com:tsilva/env-ViZDoom-turbo into turbo.
 - Fix Python import formatting.
 
 ## 1.3.0.post11 - 2026-07-28

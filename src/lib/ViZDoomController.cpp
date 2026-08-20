@@ -1193,6 +1193,8 @@ namespace vizdoom {
         switch (var) {
             case KILLCOUNT:
                 return this->gameState->MAP_KILLCOUNT;
+            case PLAYER_KILLCOUNT:
+                return this->gameState->PLAYER_DIRECT_KILLCOUNT;
             case ITEMCOUNT:
                 return this->gameState->MAP_ITEMCOUNT;
             case SECRETCOUNT:

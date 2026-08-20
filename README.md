@@ -69,6 +69,11 @@ registered `Vizdoom...` Gymnasium ID or a ViZDoom `.cfg` path.
 `VizdoomTurboVecEnv` remains available for direct use, and the existing
 scenario-specific vector IDs remain registered for compatibility.
 
+Request `game_variables=["PLAYER_KILLCOUNT"]` when policy-quality metrics must
+count only enemy deaths delivered by the player. The resulting
+`infos["player_killcount"]` signal excludes monster-infighting kills, while the
+existing ViZDoom-compatible `KILLCOUNT` signal remains unchanged.
+
 ### Crop or mask observations
 
 The crop API matches the other turbo environments: `obs_crop` contains raw

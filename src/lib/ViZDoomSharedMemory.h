@@ -220,6 +220,7 @@ namespace vizdoom {
         int PLAYER_HITS_TAKEN;
         int PLAYER_DAMAGECOUNT;
         int PLAYER_DAMAGE_TAKEN;
+        int PLAYER_DIRECT_KILLCOUNT;
 
         // TEXT CONSOLE LOG
         unsigned int NOTIFICATIONS_TEXT_SIZE;
