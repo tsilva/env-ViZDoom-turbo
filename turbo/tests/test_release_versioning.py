@@ -91,6 +91,19 @@ def test_custom_core_is_bundled_instead_of_a_runtime_dependency(
     assert "setuptools>=65" in metadata["dependency-groups"]["release"]
 
 
+def test_release_workflow_keeps_primary_package_binary_only() -> None:
+    workflow = (REPO_ROOT / ".github/workflows/release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "uv build --sdist" not in workflow
+    assert "audit-sdist" not in workflow
+    assert "uv run twine check dist/*" in workflow
+    assert "scripts/redirect_release.py" in workflow
+    assert "packages-dir: turbo/publish/primary" in workflow
+    assert "packages-dir: turbo/publish/redirect" in workflow
+
+
 @pytest.mark.parametrize("package", ("vizdoom", "vizdoom_turbo"))
 def test_macos_wheel_repair_accepts_delocates_distribution_derived_layout(
     release_build: ModuleType,

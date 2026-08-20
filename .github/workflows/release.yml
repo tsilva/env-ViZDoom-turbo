@@ -227,15 +227,6 @@ jobs:
           uv run python ../.codex/skills/build-release/scripts/release_build.py \
             final-check --version "${{ needs.validate.outputs.version }}" \
             wheelhouse/*.whl
-
-      - name: Build and audit source distribution
-        working-directory: turbo
-        run: |
-          set -euo pipefail
-          uv build --sdist --out-dir dist
-          uv run python ../.codex/skills/build-release/scripts/release_build.py \
-            audit-sdist "dist/env_vizdoom_turbo-${{ needs.validate.outputs.version }}.tar.gz" \
-            --version "${{ needs.validate.outputs.version }}"
           uv run twine check dist/*
 
       - name: Organize primary distributions
