@@ -229,6 +229,18 @@ def macos_sdl3_runtime() -> Path:
     return runtime
 
 
+def wheel_dylib_directory(unpacked_root: Path) -> Path:
+    directories = sorted(
+        path for path in unpacked_root.rglob(".dylibs") if path.is_dir()
+    )
+    if len(directories) != 1:
+        raise SystemExit(
+            "delocated wheel must contain exactly one dylib directory; "
+            f"found {directories}"
+        )
+    return directories[0]
+
+
 def bundle_macos_sdl3(wheel: Path, runtime: Path) -> Path:
     with tempfile.TemporaryDirectory(
         prefix="vizdoom-turbo-sdl3-"
@@ -252,9 +264,7 @@ def bundle_macos_sdl3(wheel: Path, runtime: Path) -> Path:
             raise SystemExit(
                 f"expected one unpacked wheel in {unpacked_output}, found {len(unpacked)}"
             )
-        dylibs = unpacked[0] / IMPORT_NAME / ".dylibs"
-        if not dylibs.is_dir():
-            raise SystemExit(f"delocated wheel is missing its dylib directory: {dylibs}")
+        dylibs = wheel_dylib_directory(unpacked[0])
         shutil.copy2(runtime, dylibs / "libSDL3.dylib")
         repacked_output.mkdir()
         run(
@@ -451,7 +461,7 @@ def audit_wheel(wheel: Path, version: str) -> dict[str, object]:
         ),
         "macos_sdl3_runtime_bundled": (
             wheel_platform(wheel) != "macos-arm64"
-            or f"{IMPORT_NAME}/.dylibs/libSDL3.dylib" in names
+            or any(name.endswith("/.dylibs/libSDL3.dylib") for name in names)
         ),
         "no_external_vizdoom_dependency": "Requires-Dist: vizdoom" not in metadata,
         "has_metadata": sum(name.endswith(".dist-info/METADATA") for name in names) == 1,

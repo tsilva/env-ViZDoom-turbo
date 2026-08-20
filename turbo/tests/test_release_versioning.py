@@ -91,6 +91,30 @@ def test_custom_core_is_bundled_instead_of_a_runtime_dependency(
     assert "setuptools>=65" in metadata["dependency-groups"]["release"]
 
 
+@pytest.mark.parametrize("package", ("vizdoom", "vizdoom_turbo"))
+def test_macos_wheel_repair_accepts_delocates_distribution_derived_layout(
+    release_build: ModuleType,
+    tmp_path: Path,
+    package: str,
+) -> None:
+    expected = tmp_path / package / ".dylibs"
+    expected.mkdir(parents=True)
+
+    assert release_build.wheel_dylib_directory(tmp_path) == expected
+
+    helper = (
+        REPO_ROOT
+        / ".codex"
+        / "skills"
+        / "build-release"
+        / "scripts"
+        / "release_build.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'rglob(".dylibs")' in helper
+    assert 'name.endswith("/.dylibs/libSDL3.dylib")' in helper
+
+
 def test_editable_build_keeps_staged_custom_core(
     build_backend: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
