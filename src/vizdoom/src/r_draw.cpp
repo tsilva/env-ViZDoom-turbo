@@ -1344,7 +1344,7 @@ static void VIZ_HOT VIZ_DrawSpanFastP_C (void)
 			//VIZDOOM_CODE
 			static const unsigned int outputCacheSize = []()
 			{
-				const char *value = std::getenv("VIZDOOM_TURBO_SPAN_OUTPUT_CACHE");
+				const char *value = std::getenv("ENV_VIZDOOM_TURBO_SPAN_OUTPUT_CACHE");
 				if (value == NULL)
 					return *viz_turbo_profile ? 1024u : 0u;
 				if (strcmp(value, "4096") == 0)
@@ -2545,7 +2545,7 @@ void R_InitColumnDrawers ()
 	//VIZDOOM_CODE
 	R_DrawSpan					=
 		(*viz_turbo_profile ||
-		 std::getenv("VIZDOOM_TURBO_COMPACT_SPAN") != NULL)
+		 std::getenv("ENV_VIZDOOM_TURBO_COMPACT_SPAN") != NULL)
 			? VIZ_DrawSpanFastP_C
 			: R_DrawSpanP_C;
 	R_DrawSpanMasked			= R_DrawSpanMaskedP_C;

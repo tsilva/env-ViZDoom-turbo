@@ -12,7 +12,7 @@
 
 ## 1.3.0.post26 - 2026-08-13
 
-- Migrate `VizdoomTurboVecEnv` to the breaking Turbo Vector API v2 common
+- Migrate `EnvViZDoomTurboVecEnv` to the breaking Turbo Vector API v2 common
   constructor with a required `game`, resolved NumPy transport, exact
   capabilities, and portable signal schema.
 - Standardize reset infos to numeric dtypes and expose appearance IDs only
@@ -23,7 +23,7 @@
 
 ## 1.3.0.post25 - 2026-08-13
 
-- Add the vector-only Gymnasium factory `vizdoom_turbo:Vizdoom-Turbo-v0`, with
+- Add the vector-only Gymnasium factory `env_vizdoom_turbo:EnvViZDoomTurbo-v0`, with
   an explicit `game` argument and the native vector environment as its result.
 - Make Turbo vector rendering opt-in with `render_mode="rgb_array"`; the
   default `None` mode performs no RGB synchronization and returns lane-aligned
@@ -157,7 +157,7 @@
 
 ## 0.1.2 - 2026-07-26
 
-- Move `vizdoom-turbo` into the `turbo` branch of the ViZDoom fork.
+- Move `env-vizdoom-turbo` into the `turbo` branch of the ViZDoom fork.
 - Namespace package release tags separately from upstream ViZDoom tags.
 - Exclude generated Python cache files and build artifacts from release distributions.
 

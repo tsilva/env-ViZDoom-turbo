@@ -23,9 +23,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKAGE_ROOT = REPO_ROOT / "turbo"
 PACKAGE_NAME = "env-vizdoom-turbo"
-CARGO_PACKAGE_NAME = "vizdoom-turbo"
-IMPORT_NAME = "vizdoom_turbo"
-EXTENSION_NAME = "_vizdoom_turbo"
+CARGO_PACKAGE_NAME = "env-vizdoom-turbo"
+IMPORT_NAME = "env_vizdoom_turbo"
+EXTENSION_NAME = "_env_vizdoom_turbo"
 RELEASE_PLATFORMS = (
     "macos-arm64",
     "linux-x86_64",
@@ -95,7 +95,7 @@ def upstream_vizdoom_version() -> str:
     metadata = read_toml(PACKAGE_ROOT / "pyproject.toml")
     tool = metadata.get("tool", {})
     assert isinstance(tool, dict)
-    turbo = tool.get("vizdoom-turbo", {})
+    turbo = tool.get("env-vizdoom-turbo", {})
     assert isinstance(turbo, dict)
     version = turbo.get("upstream-vizdoom-version")
     if not isinstance(version, str) or re.fullmatch(
@@ -103,7 +103,7 @@ def upstream_vizdoom_version() -> str:
         version,
     ) is None:
         raise SystemExit(
-            "tool.vizdoom-turbo.upstream-vizdoom-version must be "
+            "tool.env-vizdoom-turbo.upstream-vizdoom-version must be "
             "MAJOR.MINOR.PATCH"
         )
     return version
@@ -243,7 +243,7 @@ def wheel_dylib_directory(unpacked_root: Path) -> Path:
 
 def bundle_macos_sdl3(wheel: Path, runtime: Path) -> Path:
     with tempfile.TemporaryDirectory(
-        prefix="vizdoom-turbo-sdl3-"
+        prefix="env-vizdoom-turbo-sdl3-"
     ) as directory:
         work = Path(directory)
         unpacked_output = work / "unpacked"
@@ -323,7 +323,7 @@ def build_platform(args: argparse.Namespace) -> None:
             )
             wheel = resolve_wheel(output)
             with tempfile.TemporaryDirectory(
-                prefix="vizdoom-turbo-delocate-"
+                prefix="env-vizdoom-turbo-delocate-"
             ) as directory:
                 repaired_output = Path(directory)
                 delocate_env = env.copy()
@@ -504,7 +504,7 @@ def smoke_wheel(args: argparse.Namespace) -> None:
     version = args.version or project_version()
     result = audit_wheel(wheel, version)
     assert_audits([result])
-    with tempfile.TemporaryDirectory(prefix="vizdoom-turbo-smoke-") as directory:
+    with tempfile.TemporaryDirectory(prefix="env-vizdoom-turbo-smoke-") as directory:
         environment = Path(directory) / "venv"
         run(["uv", "venv", "--python", sys.executable, str(environment)])
         python = venv_python(environment)
@@ -512,14 +512,14 @@ def smoke_wheel(args: argparse.Namespace) -> None:
         code = """
 import numpy as np
 from importlib.metadata import version
-from vizdoom_turbo import VizdoomTurboVecEnv, scenario_buttons
+from env_vizdoom_turbo import EnvViZDoomTurboVecEnv, scenario_buttons
 
 print("smoke: metadata", flush=True)
 assert version("env-vizdoom-turbo") == %r
 print("smoke: scenario metadata", flush=True)
 assert scenario_buttons("VizdoomBasic-v1") == ("MOVE_LEFT", "MOVE_RIGHT", "ATTACK")
 print("smoke: construct environment", flush=True)
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-v1",
     num_envs=2,
     num_threads=2,

@@ -6,22 +6,22 @@ from typing import Any
 import gymnasium as gym
 
 from .action_tables import ActionTable
-from .env import VizDoomTurboVecEnv, VizdoomTurboVecEnv, scenario_buttons
+from .env import EnvViZDoomTurboVecEnv, scenario_buttons
 
-GYMNASIUM_ENV_ID = "Vizdoom-Turbo-v0"
-_GYMNASIUM_VECTOR_ENTRY_POINT = "vizdoom_turbo:_make_gymnasium_vec_env"
+GYMNASIUM_ENV_ID = "EnvViZDoomTurbo-v0"
+_GYMNASIUM_VECTOR_ENTRY_POINT = "env_vizdoom_turbo:_make_gymnasium_vec_env"
 _COMPATIBILITY_ENV_SPECS = {
-    "VizdoomBasic-Turbo-v0": "VizdoomBasic-v1",
-    "VizdoomBasic-Plus-v1": "VizdoomBasic-Plus-v1",
-    "VizdoomDeadlyCorridor-Turbo-v0": "VizdoomDeadlyCorridor-v1",
-    "VizdoomDefendCenter-Turbo-v0": "VizdoomDefendCenter-v1",
-    "VizdoomDefendLine-Turbo-v0": "VizdoomDefendLine-v1",
-    "VizdoomDefendLine-Plus-v1": "VizdoomDefendLine-Plus-v1",
-    "VizdoomHealthGathering-Turbo-v0": "VizdoomHealthGathering-v1",
-    "VizdoomHealthGatheringSupreme-Turbo-v0": "VizdoomHealthGatheringSupreme-v1",
-    "VizdoomMyWayHome-Turbo-v0": "VizdoomMyWayHome-v1",
-    "VizdoomPredictPosition-Turbo-v0": "VizdoomPredictPosition-v1",
-    "VizdoomTakeCover-Turbo-v0": "VizdoomTakeCover-v1",
+    "EnvViZDoomBasicTurbo-v0": "VizdoomBasic-v1",
+    "EnvViZDoomBasicPlus-v1": "VizdoomBasic-Plus-v1",
+    "EnvViZDoomDeadlyCorridorTurbo-v0": "VizdoomDeadlyCorridor-v1",
+    "EnvViZDoomDefendCenterTurbo-v0": "VizdoomDefendCenter-v1",
+    "EnvViZDoomDefendLineTurbo-v0": "VizdoomDefendLine-v1",
+    "EnvViZDoomDefendLinePlus-v1": "VizdoomDefendLine-Plus-v1",
+    "EnvViZDoomHealthGatheringTurbo-v0": "VizdoomHealthGathering-v1",
+    "EnvViZDoomHealthGatheringSupremeTurbo-v0": "VizdoomHealthGatheringSupreme-v1",
+    "EnvViZDoomMyWayHomeTurbo-v0": "VizdoomMyWayHome-v1",
+    "EnvViZDoomPredictPositionTurbo-v0": "VizdoomPredictPosition-v1",
+    "EnvViZDoomTakeCoverTurbo-v0": "VizdoomTakeCover-v1",
 }
 
 try:
@@ -30,8 +30,8 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 
-def _make_gymnasium_vec_env(*, game: str, num_envs: int = 1, **kwargs: Any) -> VizdoomTurboVecEnv:
-    return VizdoomTurboVecEnv(game=game, num_envs=num_envs, **kwargs)
+def _make_gymnasium_vec_env(*, game: str, num_envs: int = 1, **kwargs: Any) -> EnvViZDoomTurboVecEnv:
+    return EnvViZDoomTurboVecEnv(game=game, num_envs=num_envs, **kwargs)
 
 
 def _register_gymnasium_envs() -> None:
@@ -59,7 +59,7 @@ def _register_gymnasium_envs() -> None:
             gym.register(
                 id=env_id,
                 entry_point=None,
-                vector_entry_point="vizdoom_turbo:VizdoomTurboVecEnv",
+                vector_entry_point="env_vizdoom_turbo:EnvViZDoomTurboVecEnv",
                 kwargs={"game": game},
             )
 
@@ -69,8 +69,7 @@ _register_gymnasium_envs()
 __all__ = [
     "ActionTable",
     "GYMNASIUM_ENV_ID",
-    "VizDoomTurboVecEnv",
-    "VizdoomTurboVecEnv",
+    "EnvViZDoomTurboVecEnv",
     "__version__",
     "scenario_buttons",
 ]

@@ -33,8 +33,6 @@ VERSION_RE = re.compile(
 )
 PACKAGE_NAME = "env-vizdoom-turbo"
 TAG_PREFIX = "env-vizdoom-turbo-v"
-MIGRATION_VERSION = "1.3.0.post27"
-REDIRECT_PACKAGE = "vizdoom-turbo"
 
 
 def run(
@@ -132,8 +130,6 @@ def latest_release_tag() -> str | None:
                 "--tags",
                 "--abbrev=0",
                 "--match",
-                "vizdoom-turbo-v[0-9]*",
-                "--match",
                 "env-vizdoom-turbo-v[0-9]*",
             ]
         )
@@ -160,14 +156,14 @@ def upstream_vizdoom_version() -> str:
     with (PACKAGE_ROOT / "pyproject.toml").open("rb") as stream:
         metadata = tomllib.load(stream)
     tool = metadata.get("tool", {})
-    turbo = tool.get("vizdoom-turbo", {})
+    turbo = tool.get("env-vizdoom-turbo", {})
     version = turbo.get("upstream-vizdoom-version")
     if not isinstance(version, str) or re.fullmatch(
         r"[0-9]+\.[0-9]+\.[0-9]+",
         version,
     ) is None:
         raise SystemExit(
-            "tool.vizdoom-turbo.upstream-vizdoom-version must be "
+            "tool.env-vizdoom-turbo.upstream-vizdoom-version must be "
             "MAJOR.MINOR.PATCH"
         )
     return version
@@ -202,14 +198,6 @@ def target_version(args: argparse.Namespace) -> str:
             "--allow-upstream-base-mismatch to override"
         )
     helper("check-pypi", "--version", version)
-    if version == MIGRATION_VERSION:
-        helper(
-            "check-pypi",
-            "--version",
-            version,
-            "--package",
-            REDIRECT_PACKAGE,
-        )
     return version
 
 
@@ -232,7 +220,6 @@ def generated_release_notes(base_ref: str | None) -> str:
         if (
             not subject
             or subject.startswith("Release v")
-            or subject.startswith("Release vizdoom-turbo-v")
             or subject.startswith("Release env-vizdoom-turbo-v")
             or subject in notes
         ):

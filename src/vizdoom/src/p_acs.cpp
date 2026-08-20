@@ -6137,7 +6137,7 @@ int DLevelScript::RunScript ()
 	int resultValue = 1;
 	//VIZDOOM_CODE
 	static const bool vizTurboBasicRewardScript =
-		getenv("VIZDOOM_TURBO_LEGACY_ACS_REWARD") == NULL;
+		getenv("ENV_VIZDOOM_TURBO_LEGACY_ACS_REWARD") == NULL;
 	//VIZDOOM_CODE
 	if (vizTurboBasicRewardScript && *viz_turbo_profile && script == 3 &&
 		state == SCRIPT_Delayed && statedata == 1 && numlocalvars >= 2)

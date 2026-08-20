@@ -177,11 +177,11 @@ void VIZ_FreezeTime (bool frozen){
 void VIZ_Init(){
     if(*viz_controlled) {
         if(*viz_turbo_profile ||
-           std::getenv("VIZDOOM_TURBO_DISABLE_FPS_TIMER") != NULL) {
+           std::getenv("ENV_VIZDOOM_TURBO_DISABLE_FPS_TIMER") != NULL) {
             I_SetFPSLimit(0);
         }
 #ifndef _WIN32
-        const char *turboNice = std::getenv("VIZDOOM_TURBO_ENGINE_NICE");
+        const char *turboNice = std::getenv("ENV_VIZDOOM_TURBO_ENGINE_NICE");
         if(turboNice != NULL) {
             setpriority(PRIO_PROCESS, 0, std::atoi(turboNice));
         }
@@ -211,7 +211,7 @@ void VIZ_Init(){
             I_WaitForTic = &VIZ_WaitForTic;
             I_FreezeTime = &VIZ_FreezeTime;
 #ifndef _WIN32
-            if(std::getenv("VIZDOOM_TURBO_DISABLE_TIC_TIMER") != NULL) {
+            if(std::getenv("ENV_VIZDOOM_TURBO_DISABLE_TIC_TIMER") != NULL) {
                 struct itimerval disabledTimer = {{0, 0}, {0, 0}};
                 setitimer(ITIMER_REAL, &disabledTimer, NULL);
             }
@@ -247,7 +247,7 @@ void VIZ_AsyncStartTic(){
 
 bool VIZ_FusedTics(){
     static const bool enabled =
-        std::getenv("VIZDOOM_TURBO_FUSED_TICS") != NULL;
+        std::getenv("ENV_VIZDOOM_TURBO_FUSED_TICS") != NULL;
     return *viz_turbo_profile || enabled;
 }
 
@@ -377,9 +377,9 @@ void VIZ_Update(){
     }
     //VIZDOOM_CODE
     static const bool turboSkipStaticNoop =
-        std::getenv("VIZDOOM_TURBO_SKIP_STATIC_NOOP_RENDER") != NULL;
+        std::getenv("ENV_VIZDOOM_TURBO_SKIP_STATIC_NOOP_RENDER") != NULL;
     static const bool turboSkipTerminalRender =
-        std::getenv("VIZDOOM_TURBO_SKIP_TERMINAL_RENDER") != NULL;
+        std::getenv("ENV_VIZDOOM_TURBO_SKIP_TERMINAL_RENDER") != NULL;
     const bool skipStaticNoop =
         *viz_turbo_profile || turboSkipStaticNoop;
     if (skipStaticNoop && vizTurboStaticNoopEligible) {

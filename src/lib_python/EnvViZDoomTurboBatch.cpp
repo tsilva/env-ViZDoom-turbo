@@ -20,7 +20,7 @@
  THE SOFTWARE.
 */
 
-#include "ViZDoomTurboBatch.h"
+#include "EnvViZDoomTurboBatch.h"
 #include "ViZDoomController.h"
 
 #include <algorithm>
@@ -116,7 +116,7 @@ namespace vizdoom {
         this->truncatedData = this->truncated.mutable_data();
         this->gameVariablesData = this->gameVariables.mutable_data();
 
-        if (std::getenv("VIZDOOM_TURBO_FAST_IPC") != nullptr) {
+        if (std::getenv("ENV_VIZDOOM_TURBO_FAST_IPC") != nullptr) {
             ReleaseGIL gil;
             for (DoomGamePython *game : this->games) {
                 game->doomController->enableFastIPC();

@@ -39,10 +39,10 @@ def _event_hash(*arrays: np.ndarray, infos: dict[str, np.ndarray]) -> str:
 
 
 def _trace() -> dict[str, object]:
-    import vizdoom_turbo
-    from vizdoom_turbo import VizdoomTurboVecEnv
+    import env_vizdoom_turbo
+    from env_vizdoom_turbo import EnvViZDoomTurboVecEnv
 
-    env = VizdoomTurboVecEnv(
+    env = EnvViZDoomTurboVecEnv(
         game="VizdoomBasic-v1",
         num_envs=32,
         num_threads=32,
@@ -109,7 +109,7 @@ def _trace() -> dict[str, object]:
             "reset_count": reset_count,
             "event_hashes": event_hashes,
             "event_names": event_names,
-            "package_path": str(Path(vizdoom_turbo.__file__).resolve()),
+            "package_path": str(Path(env_vizdoom_turbo.__file__).resolve()),
         }
     finally:
         env.close()

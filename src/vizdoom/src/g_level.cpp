@@ -402,7 +402,7 @@ void G_InitNew (const char *mapname, bool bTitleLevel)
 
 	//VIZDOOM_CODE
 	static const bool vizTurboReuseStatusBar =
-		std::getenv("VIZDOOM_TURBO_DISABLE_STATUS_BAR_REUSE") == NULL;
+		std::getenv("ENV_VIZDOOM_TURBO_DISABLE_STATUS_BAR_REUSE") == NULL;
 	//VIZDOOM_CODE
 	if (!(vizTurboReuseStatusBar && vizTurboReset && *viz_turbo_profile &&
 		StatusBar != NULL && !bTitleLevel))

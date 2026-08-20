@@ -13,10 +13,10 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = PACKAGE_ROOT.parent
 SOURCE_ROOT = PACKAGE_ROOT / "scenarios" / "basic_plus"
 ENEMY_ASSET_ROOT = (
-    PACKAGE_ROOT / "python" / "vizdoom_turbo" / "assets" / "enemy_variants"
+    PACKAGE_ROOT / "python" / "env_vizdoom_turbo" / "assets" / "enemy_variants"
 )
 SURFACE_ASSET_ROOT = (
-    PACKAGE_ROOT / "python" / "vizdoom_turbo" / "assets" / "surface_variants"
+    PACKAGE_ROOT / "python" / "env_vizdoom_turbo" / "assets" / "surface_variants"
 )
 ENEMY_CATALOG = ENEMY_ASSET_ROOT / "basic" / "catalog.json"
 SURFACE_CATALOG = SURFACE_ASSET_ROOT / "basic" / "catalog.json"

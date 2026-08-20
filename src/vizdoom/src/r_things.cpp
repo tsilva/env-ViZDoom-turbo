@@ -321,9 +321,9 @@ static VIZTurboSpriteClipEntry *vizTurboSpriteClips =
 static size_t VIZ_TurboSpriteClipIndex (uint64_t fingerprint)
 {
 	static const bool small =
-		getenv("VIZDOOM_TURBO_SMALL_SPRITE_CACHE") != NULL;
+		getenv("ENV_VIZDOOM_TURBO_SMALL_SPRITE_CACHE") != NULL;
 	static const bool medium =
-		getenv("VIZDOOM_TURBO_MEDIUM_SPRITE_CACHE") != NULL;
+		getenv("ENV_VIZDOOM_TURBO_MEDIUM_SPRITE_CACHE") != NULL;
 	return fingerprint & (small ? 63 : medium ? 255 : 1023);
 }
 
@@ -331,9 +331,9 @@ static size_t VIZ_TurboSpriteClipIndex (uint64_t fingerprint)
 static size_t VIZ_TurboSpriteEffectIndex (uint64_t fingerprint)
 {
 	static const bool small =
-		getenv("VIZDOOM_TURBO_SMALL_SPRITE_CACHE") != NULL;
+		getenv("ENV_VIZDOOM_TURBO_SMALL_SPRITE_CACHE") != NULL;
 	static const bool medium =
-		getenv("VIZDOOM_TURBO_MEDIUM_SPRITE_CACHE") != NULL;
+		getenv("ENV_VIZDOOM_TURBO_MEDIUM_SPRITE_CACHE") != NULL;
 	return fingerprint & (small ? 127 : medium ? 511 : 2047);
 }
 
@@ -354,7 +354,7 @@ static bool VIZ_TurboSpriteClipLookup (
 	vissprite_t *sprite, short topclip, short botclip,
 	short *floorclip, short *ceilingclip, int x1, int x2)
 {
-	if (getenv("VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
+	if (getenv("ENV_VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
 		!*viz_turbo_profile || !vizTurboBackgroundCacheHit ||
 		VIZ_TurboImpactDecalCount() != 0)
 		return false;
@@ -378,7 +378,7 @@ static void VIZ_TurboSpriteClipStore (
 	vissprite_t *sprite, short topclip, short botclip,
 	short *floorclip, short *ceilingclip, int x1, int x2)
 {
-	if (getenv("VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
+	if (getenv("ENV_VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
 		!*viz_turbo_profile || !vizTurboBackgroundCacheHit ||
 		VIZ_TurboImpactDecalCount() != 0)
 		return;
@@ -418,7 +418,7 @@ static uint64_t VIZ_TurboSpriteFingerprint (
 //VIZDOOM_CODE
 static bool VIZ_TurboSpriteEffectLookup (vissprite_t *vis)
 {
-	if (getenv("VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
+	if (getenv("ENV_VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
 		!*viz_turbo_profile || vizDepthMap != NULL || vizLabels != NULL ||
 		viewwidth != 320 || viewheight != 240 ||
 		RenderTarget->GetPitch() != 320 ||
@@ -454,7 +454,7 @@ static bool VIZ_TurboSpriteEffectLookup (vissprite_t *vis)
 //VIZDOOM_CODE
 static VIZTurboSpriteEffectEntry *VIZ_TurboSpriteEffectPrepare (vissprite_t *vis)
 {
-	if (getenv("VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
+	if (getenv("ENV_VIZDOOM_TURBO_DISABLE_SPRITE_CACHE") != NULL ||
 		!*viz_turbo_profile || vizDepthMap != NULL || vizLabels != NULL ||
 		viewwidth != 320 || viewheight != 240 ||
 		RenderTarget->GetPitch() != 320 ||

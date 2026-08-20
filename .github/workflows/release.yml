@@ -73,11 +73,9 @@ jobs:
 
       - name: Check release metadata
         working-directory: turbo
-        run: |
-          uv run python ../.codex/skills/build-release/scripts/release_build.py \
-            check-version --version "${{ steps.version.outputs.version }}"
-          uv run python scripts/redirect_release.py check-source \
-            --version "${{ steps.version.outputs.version }}"
+        run: >-
+          uv run python ../.codex/skills/build-release/scripts/release_build.py
+          check-version --version "${{ steps.version.outputs.version }}"
 
       - name: Check PyPI version is unused
         if: github.event_name == 'push' && github.ref_type == 'tag'
@@ -85,16 +83,6 @@ jobs:
         run: >-
           uv run python ../.codex/skills/build-release/scripts/release_build.py
           check-pypi --version "${{ steps.version.outputs.version }}"
-
-      - name: Check migration package version is unused
-        if: >-
-          github.event_name == 'push' && github.ref_type == 'tag' &&
-          steps.version.outputs.version == '1.3.0.post27'
-        working-directory: turbo
-        run: >-
-          uv run python ../.codex/skills/build-release/scripts/release_build.py
-          check-pypi --package vizdoom-turbo
-          --version "${{ steps.version.outputs.version }}"
 
       - name: Run source checks
         working-directory: turbo
@@ -237,15 +225,6 @@ jobs:
           mkdir -p publish/primary
           mv dist/* publish/primary/
 
-      - name: Build and audit migration distributions
-        if: needs.validate.outputs.version == '1.3.0.post27'
-        working-directory: turbo
-        run: >-
-          uv run python scripts/redirect_release.py
-          build
-          --version "${{ needs.validate.outputs.version }}"
-          --out-dir publish/redirect
-
       - name: Upload audited distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -276,12 +255,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           packages-dir: turbo/publish/primary
-
-      - name: Publish migration package distributions to PyPI
-        if: needs.validate.outputs.version == '1.3.0.post27'
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
-        with:
-          packages-dir: turbo/publish/redirect
 
   github-release:
     name: Publish GitHub release

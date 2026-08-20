@@ -1319,7 +1319,7 @@ void R_Subsector (subsector_t *sub)
 	extern bool vizTurboBackgroundGeometryReplay; //VIZDOOM_CODE
 	extern int VIZ_TurboImpactDecalCount (); //VIZDOOM_CODE
 	static const bool vizTurboZeroDecalReplayEnabled =
-		std::getenv("VIZDOOM_TURBO_DISABLE_ZERO_DECAL_REPLAY") == NULL; //VIZDOOM_CODE
+		std::getenv("ENV_VIZDOOM_TURBO_DISABLE_ZERO_DECAL_REPLAY") == NULL; //VIZDOOM_CODE
 	//VIZDOOM_CODE
 	if (vizTurboZeroDecalReplayEnabled && vizTurboBackgroundGeometryReplay &&
 		VIZ_TurboImpactDecalCount() == 0 && count > 1)

@@ -7,15 +7,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import env_vizdoom_turbo
 import gymnasium as gym
 import numpy as np
 import pytest
 import vizdoom as vzd
-import vizdoom_turbo
+from env_vizdoom_turbo import EnvViZDoomTurboVecEnv, scenario_buttons
+from env_vizdoom_turbo.env import _SignalFrameStacks
 from gymnasium.envs.registration import EnvSpec
 from gymnasium.vector import AutoresetMode
-from vizdoom_turbo import VizDoomTurboVecEnv, VizdoomTurboVecEnv, scenario_buttons
-from vizdoom_turbo.env import _SignalFrameStacks
 
 SUPPORTED_SCENARIOS = (
     "basic",
@@ -32,17 +32,17 @@ SUPPORTED_SCENARIOS = (
     "take_cover",
 )
 REGISTERED_TURBO_GAMES = {
-    "VizdoomBasic-Turbo-v0": "VizdoomBasic-v1",
-    "VizdoomBasic-Plus-v1": "VizdoomBasic-Plus-v1",
-    "VizdoomDeadlyCorridor-Turbo-v0": "VizdoomDeadlyCorridor-v1",
-    "VizdoomDefendCenter-Turbo-v0": "VizdoomDefendCenter-v1",
-    "VizdoomDefendLine-Turbo-v0": "VizdoomDefendLine-v1",
-    "VizdoomDefendLine-Plus-v1": "VizdoomDefendLine-Plus-v1",
-    "VizdoomHealthGathering-Turbo-v0": "VizdoomHealthGathering-v1",
-    "VizdoomHealthGatheringSupreme-Turbo-v0": "VizdoomHealthGatheringSupreme-v1",
-    "VizdoomMyWayHome-Turbo-v0": "VizdoomMyWayHome-v1",
-    "VizdoomPredictPosition-Turbo-v0": "VizdoomPredictPosition-v1",
-    "VizdoomTakeCover-Turbo-v0": "VizdoomTakeCover-v1",
+    "EnvViZDoomBasicTurbo-v0": "VizdoomBasic-v1",
+    "EnvViZDoomBasicPlus-v1": "VizdoomBasic-Plus-v1",
+    "EnvViZDoomDeadlyCorridorTurbo-v0": "VizdoomDeadlyCorridor-v1",
+    "EnvViZDoomDefendCenterTurbo-v0": "VizdoomDefendCenter-v1",
+    "EnvViZDoomDefendLineTurbo-v0": "VizdoomDefendLine-v1",
+    "EnvViZDoomDefendLinePlus-v1": "VizdoomDefendLine-Plus-v1",
+    "EnvViZDoomHealthGatheringTurbo-v0": "VizdoomHealthGathering-v1",
+    "EnvViZDoomHealthGatheringSupremeTurbo-v0": "VizdoomHealthGatheringSupreme-v1",
+    "EnvViZDoomMyWayHomeTurbo-v0": "VizdoomMyWayHome-v1",
+    "EnvViZDoomPredictPositionTurbo-v0": "VizdoomPredictPosition-v1",
+    "EnvViZDoomTakeCoverTurbo-v0": "VizdoomTakeCover-v1",
 }
 APPEARANCE_VARIANT_RESET_INFO_KEYS = {
     f"{prefix}{role}_variant_{suffix}"
@@ -60,7 +60,7 @@ APPEARANCE_VARIANT_RESET_INFO_KEYS = {
 }
 
 
-def make_env(**overrides) -> VizdoomTurboVecEnv:
+def make_env(**overrides) -> EnvViZDoomTurboVecEnv:
     options = {
         "game": "VizdoomBasic-v1",
         "num_envs": 2,
@@ -75,32 +75,32 @@ def make_env(**overrides) -> VizdoomTurboVecEnv:
         "info_filter": "all",
     }
     options.update(overrides)
-    return VizdoomTurboVecEnv(**options)
+    return EnvViZDoomTurboVecEnv(**options)
 
 
 def test_generic_gymnasium_registration_is_vector_only_and_idempotent(monkeypatch):
-    spec = gym.spec(vizdoom_turbo.GYMNASIUM_ENV_ID)
+    spec = gym.spec(env_vizdoom_turbo.GYMNASIUM_ENV_ID)
     assert spec.entry_point is None
-    assert spec.vector_entry_point == "vizdoom_turbo:_make_gymnasium_vec_env"
+    assert spec.vector_entry_point == "env_vizdoom_turbo:_make_gymnasium_vec_env"
     assert spec.kwargs == {}
-    vizdoom_turbo._register_gymnasium_envs()
+    env_vizdoom_turbo._register_gymnasium_envs()
 
     with pytest.raises(gym.error.Error, match="entry_point is not specified"):
-        gym.make(vizdoom_turbo.GYMNASIUM_ENV_ID, game="VizdoomBasic-v1")
+        gym.make(env_vizdoom_turbo.GYMNASIUM_ENV_ID, game="VizdoomBasic-v1")
     with pytest.raises(TypeError, match="game"):
-        gym.make_vec(vizdoom_turbo.GYMNASIUM_ENV_ID, num_envs=1)
+        gym.make_vec(env_vizdoom_turbo.GYMNASIUM_ENV_ID, num_envs=1)
 
     monkeypatch.setitem(
         gym.registry,
-        vizdoom_turbo.GYMNASIUM_ENV_ID,
+        env_vizdoom_turbo.GYMNASIUM_ENV_ID,
         EnvSpec(
-            id=vizdoom_turbo.GYMNASIUM_ENV_ID,
+            id=env_vizdoom_turbo.GYMNASIUM_ENV_ID,
             entry_point=None,
             vector_entry_point="tests:conflicting_factory",
         ),
     )
     with pytest.raises(gym.error.Error, match="conflicting specification"):
-        vizdoom_turbo._register_gymnasium_envs()
+        env_vizdoom_turbo._register_gymnasium_envs()
 
 
 def test_module_qualified_gymnasium_id_registers_in_a_clean_process():
@@ -112,16 +112,16 @@ def test_module_qualified_gymnasium_id_registers_in_a_clean_process():
             sys.executable,
             "-c",
             'exec("""import gymnasium as gym\n'
-            "assert 'Vizdoom-Turbo-v0' not in gym.registry\n"
+            "assert 'EnvViZDoomTurbo-v0' not in gym.registry\n"
             "try:\n"
-            "    gym.make_vec('vizdoom_turbo:Vizdoom-Turbo-v0', num_envs=1)\n"
+            "    gym.make_vec('env_vizdoom_turbo:EnvViZDoomTurbo-v0', num_envs=1)\n"
             "except TypeError as exc:\n"
             "    assert 'game' in str(exc)\n"
             "else:\n"
             "    raise AssertionError('game was not required')\n"
-            "spec = gym.spec('Vizdoom-Turbo-v0')\n"
+            "spec = gym.spec('EnvViZDoomTurbo-v0')\n"
             "assert spec.vector_entry_point == "
-            '\'vizdoom_turbo:_make_gymnasium_vec_env\'\n""")',
+            '\'env_vizdoom_turbo:_make_gymnasium_vec_env\'\n""")',
         ],
         check=True,
         cwd=root,
@@ -131,7 +131,7 @@ def test_module_qualified_gymnasium_id_registers_in_a_clean_process():
 
 def test_generic_gymnasium_factory_runs_native_vector_env():
     env = gym.make_vec(
-        "vizdoom_turbo:Vizdoom-Turbo-v0",
+        "env_vizdoom_turbo:EnvViZDoomTurbo-v0",
         game="VizdoomBasic-v1",
         num_envs=2,
         num_threads=2,
@@ -144,7 +144,7 @@ def test_generic_gymnasium_factory_runs_native_vector_env():
         maxpool_last_two=True,
     )
     try:
-        assert isinstance(env, VizdoomTurboVecEnv)
+        assert isinstance(env, EnvViZDoomTurboVecEnv)
         observations, _infos = env.reset(seed=7)
         assert env.observation_space.contains(observations)
         transition = env.step(np.zeros(2, dtype=np.int64))
@@ -153,7 +153,7 @@ def test_generic_gymnasium_factory_runs_native_vector_env():
         env.close()
 
 
-def make_exact_env(**overrides) -> VizdoomTurboVecEnv:
+def make_exact_env(**overrides) -> EnvViZDoomTurboVecEnv:
     options = {
         "game": "VizdoomBasic-v1",
         "num_envs": 4,
@@ -172,10 +172,10 @@ def make_exact_env(**overrides) -> VizdoomTurboVecEnv:
         "game_variables": ["KILLCOUNT"],
     }
     options.update(overrides)
-    return VizdoomTurboVecEnv(**options)
+    return EnvViZDoomTurboVecEnv(**options)
 
 
-def make_history_env(**overrides) -> VizdoomTurboVecEnv:
+def make_history_env(**overrides) -> EnvViZDoomTurboVecEnv:
     options = {
         "game": "VizdoomBasic-v1",
         "num_envs": 2,
@@ -191,7 +191,7 @@ def make_history_env(**overrides) -> VizdoomTurboVecEnv:
         "info_frame_stack_keys": ["episode_time"],
     }
     options.update(overrides)
-    return VizdoomTurboVecEnv(**options)
+    return EnvViZDoomTurboVecEnv(**options)
 
 
 def test_player_killcount_is_an_explicit_vector_info_signal() -> None:
@@ -234,7 +234,7 @@ def assert_mechanical_info_equal(
 
 
 def test_public_signature_matches_turbo_constructor_contract() -> None:
-    parameters = inspect.signature(VizdoomTurboVecEnv).parameters
+    parameters = inspect.signature(EnvViZDoomTurboVecEnv).parameters
     assert parameters["use_fire_reset"].default is False
     assert parameters["render_mode"].default is None
     expected = (
@@ -314,13 +314,12 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
         None,
         None,
     )
-    assert VizDoomTurboVecEnv is VizdoomTurboVecEnv
-    assert issubclass(VizdoomTurboVecEnv, gym.vector.VectorEnv)
-    assert VizdoomTurboVecEnv.metadata["autoreset_mode"] is AutoresetMode.DISABLED
-    assert VizdoomTurboVecEnv.metadata["turbo_api_version"] == 2
-    assert VizdoomTurboVecEnv.metadata["transition_transport"] == "numpy"
-    assert gym.spec("VizdoomBasic-Turbo-v0").vector_entry_point == (
-        "vizdoom_turbo:VizdoomTurboVecEnv"
+    assert issubclass(EnvViZDoomTurboVecEnv, gym.vector.VectorEnv)
+    assert EnvViZDoomTurboVecEnv.metadata["autoreset_mode"] is AutoresetMode.DISABLED
+    assert EnvViZDoomTurboVecEnv.metadata["turbo_api_version"] == 2
+    assert EnvViZDoomTurboVecEnv.metadata["transition_transport"] == "numpy"
+    assert gym.spec("EnvViZDoomBasicTurbo-v0").vector_entry_point == (
+        "env_vizdoom_turbo:EnvViZDoomTurboVecEnv"
     )
     assert scenario_buttons("VizdoomBasic-v1") == (
         "MOVE_LEFT",
@@ -339,7 +338,7 @@ def test_public_signature_matches_turbo_constructor_contract() -> None:
     )
     for registered_id, game in REGISTERED_TURBO_GAMES.items():
         spec = gym.spec(registered_id)
-        assert spec.vector_entry_point == "vizdoom_turbo:VizdoomTurboVecEnv"
+        assert spec.vector_entry_point == "env_vizdoom_turbo:EnvViZDoomTurboVecEnv"
         assert spec.kwargs["game"] == game
 
 
@@ -369,9 +368,9 @@ def test_unsupported_render_mode_is_rejected() -> None:
 
 
 def test_removed_state_dir_is_rejected() -> None:
-    assert "state_dir" not in inspect.signature(VizdoomTurboVecEnv).parameters
+    assert "state_dir" not in inspect.signature(EnvViZDoomTurboVecEnv).parameters
     with pytest.raises(TypeError, match="state_dir"):
-        VizdoomTurboVecEnv(state_dir="/tmp/states")
+        EnvViZDoomTurboVecEnv(state_dir="/tmp/states")
 
 
 def test_native_batch_api_reports_phase_lane_and_message() -> None:
@@ -1224,7 +1223,7 @@ def test_rendering_is_disabled_by_default() -> None:
 
 
 def test_v2_shared_defaults_resolve_filtered_chw_stack() -> None:
-    env = VizdoomTurboVecEnv("VizdoomBasic-v1")
+    env = EnvViZDoomTurboVecEnv("VizdoomBasic-v1")
     try:
         observations, infos = env.reset(seed=23)
         assert observations.shape == (1, 4, 84, 84)
@@ -1460,7 +1459,7 @@ def test_legacy_reset_selector_names_are_rejected() -> None:
 
 @pytest.mark.parametrize("scenario", SUPPORTED_SCENARIOS)
 def test_every_supported_scenario_resets_and_steps(scenario: str) -> None:
-    env = VizdoomTurboVecEnv(
+    env = EnvViZDoomTurboVecEnv(
         game=scenario,
         num_envs=1,
         num_threads=1,
@@ -1659,7 +1658,7 @@ def test_enabled_hud_crop_runs_on_native_indexed_path(
         "obs_crop_fill": 0,
     }
     native = make_exact_env(**options)
-    monkeypatch.setenv("VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
+    monkeypatch.setenv("ENV_VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
     fallback = make_exact_env(**options)
     try:
         native_observations, native_infos = native.reset(seed=31)
@@ -1700,7 +1699,7 @@ def test_nonpositive_frame_skip_is_rejected(frame_skip: int) -> None:
 def test_native_pipeline_disable_switch_uses_generic_rgb_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
+    monkeypatch.setenv("ENV_VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
     env = make_exact_env(num_envs=1, num_threads=1)
     try:
         env.reset(seed=32)
@@ -1760,7 +1759,7 @@ def test_native_pipeline_matches_fallback_through_terminals_and_masked_resets(
         frame_skip=frame_skip,
         vizdoom_config={"episode_timeout": 300, "episode_start_time": 1},
     )
-    monkeypatch.setenv("VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
+    monkeypatch.setenv("ENV_VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
     fallback = make_exact_env(
         frame_skip=frame_skip,
         vizdoom_config={"episode_timeout": 300, "episode_start_time": 1},
@@ -1851,7 +1850,7 @@ def test_info_frame_stack_native_and_fallback_pipelines_match(
         "info_frame_stack_keys": ["ammo2", "episode_time"],
     }
     native = make_history_env(**options)
-    monkeypatch.setenv("VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
+    monkeypatch.setenv("ENV_VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE", "1")
     fallback = make_history_env(**options)
     try:
         assert native._native_stepper is not None

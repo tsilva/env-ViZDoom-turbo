@@ -53,8 +53,8 @@ configure_file(
 set(VIZDOOM_PYTHON_SOURCES
     ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomGamePython.h
     ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomGamePython.cpp
-    ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomTurboBatch.h
-    ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomTurboBatch.cpp
+    ${VIZDOOM_PYTHON_SRC_DIR}/EnvViZDoomTurboBatch.h
+    ${VIZDOOM_PYTHON_SRC_DIR}/EnvViZDoomTurboBatch.cpp
     ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomMethodsDocstrings.h
     ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomObjectsDocstrings.h
     ${VIZDOOM_PYTHON_SRC_DIR}/ViZDoomPythonModule.cpp)

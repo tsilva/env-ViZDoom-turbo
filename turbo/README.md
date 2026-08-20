@@ -33,7 +33,7 @@ import gymnasium as gym
 import numpy as np
 
 env = gym.make_vec(
-    "vizdoom_turbo:Vizdoom-Turbo-v0",
+    "env_vizdoom_turbo:EnvViZDoomTurbo-v0",
     game="VizdoomBasic-v1",
     num_envs=16,
     num_threads=8,
@@ -65,7 +65,7 @@ finally:
 The module-qualified ID imports the package and registers the factory. This ID
 is vector-only and requires an explicit `game`, which can be a canonical
 registered `Vizdoom...` Gymnasium ID or a ViZDoom `.cfg` path.
-`VizdoomTurboVecEnv` remains available for direct use, and the existing
+`EnvViZDoomTurboVecEnv` remains available for direct use, and the existing
 scenario-specific vector IDs remain registered for compatibility.
 
 ### Crop or mask observations
@@ -80,7 +80,7 @@ For example, the classic 320×240 Doom HUD occupies the bottom 32 pixels. This
 keeps the HUD enabled in ViZDoom while masking it out of policy observations:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-v1",
     vizdoom_config={"render_hud": True},
     obs_crop=(0, 32, 0, 0),
@@ -99,7 +99,7 @@ Pass `info_frame_stack_keys` to request policy-transition histories whose depth
 always matches the resolved `frame_stack`:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-v1",
     frame_skip=4,
     frame_stack=4,
@@ -136,7 +136,7 @@ one target appearance and one coordinated wall/floor/ceiling texture set per
 lane on every reset:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-Plus-v1",
     num_envs=16,
     enemy_variants={
@@ -174,7 +174,7 @@ while independently selecting one configured appearance for each enemy and
 surface role in every vector lane on every reset:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomDefendLine-Plus-v1",
     num_envs=16,
     enemy_variants={
@@ -232,9 +232,9 @@ In a GradLab environment config, declare the same list under
 `env_config.env_args.enemy_variants` or `env_config.env_args.surface_variants`.
 
 Reusable source frames, Doom patch lumps, manifests, proofs, and provenance live
-under `vizdoom_turbo/assets/enemy_variants/`. Seamless 64×64 PLAYPAL surface
+under `env_vizdoom_turbo/assets/enemy_variants/`. Seamless 64×64 PLAYPAL surface
 tiles, tiled proofs, prompts, manifests, and provenance live under
-`vizdoom_turbo/assets/surface_variants/`. The packaged Plus WADs are built from
+`env_vizdoom_turbo/assets/surface_variants/`. The packaged Plus WADs are built from
 the editable scenario sources with:
 
 ```bash
@@ -257,7 +257,7 @@ comparison grids live with the editable Defend the Line Plus scenario sources.
 
 ## Turbo Vector API v2
 
-`VizdoomTurboVecEnv` implements the strict Turbo Vector API v2:
+`EnvViZDoomTurboVecEnv` implements the strict Turbo Vector API v2:
 
 - `metadata["turbo_api_version"]` is `2`,
   `metadata["transition_transport"]` is `"numpy"`, and `metadata["render_modes"]`
@@ -321,7 +321,7 @@ uv run ruff check .                                       # lint Python
 cargo fmt --check                                         # check Rust formatting
 cargo clippy --all-targets --all-features -- -D warnings  # lint Rust
 uv build --wheel                                          # build the distributable wheel
-VIZDOOM_TURBO_PREBUILT_CORE=/path/to/vizdoom uv build --wheel
+ENV_VIZDOOM_TURBO_PREBUILT_CORE=/path/to/vizdoom uv build --wheel
                                                              # package a validated optimized core
 ```
 

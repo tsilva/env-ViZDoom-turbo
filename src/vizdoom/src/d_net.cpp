@@ -85,7 +85,7 @@ EXTERN_CVAR (Int, autosavecount)
 static bool VIZ_LegacyInputPolling()
 {
 	static const bool enabled =
-		std::getenv("VIZDOOM_TURBO_LEGACY_INPUT_POLLING") != NULL;
+		std::getenv("ENV_VIZDOOM_TURBO_LEGACY_INPUT_POLLING") != NULL;
 	return enabled;
 }
 

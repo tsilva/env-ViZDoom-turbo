@@ -17,8 +17,8 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = PACKAGE_ROOT.parent
 STAGED_PACKAGE = PACKAGE_ROOT / "python" / "vizdoom"
-PREBUILT_CORE_ENV = "VIZDOOM_TURBO_PREBUILT_CORE"
-DISABLE_PGO_ENV = "VIZDOOM_TURBO_DISABLE_PGO"
+PREBUILT_CORE_ENV = "ENV_VIZDOOM_TURBO_PREBUILT_CORE"
+DISABLE_PGO_ENV = "ENV_VIZDOOM_TURBO_DISABLE_PGO"
 
 
 def built_package(repository: Path) -> Path:
@@ -158,7 +158,7 @@ def build_core(repository: Path, *, profile_guided: bool = False) -> None:
     outer_site_packages = [
         path for path in sys.path if path and Path(path).name in {"site-packages", "dist-packages"}
     ]
-    (site_packages / "vizdoom_turbo_build_environment.pth").write_text(
+    (site_packages / "env_vizdoom_turbo_build_environment.pth").write_text(
         "".join(f"{path}\n" for path in outer_site_packages),
         encoding="utf-8",
     )
@@ -226,7 +226,7 @@ def build_and_stage(*, profile_guided: bool = False) -> None:
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
         )
         return
-    with tempfile.TemporaryDirectory(prefix="vizdoom-turbo-core-") as directory:
+    with tempfile.TemporaryDirectory(prefix="env-vizdoom-turbo-core-") as directory:
         repository = Path(directory) / "ViZDoom"
         copy_core_source(repository)
         build_core(repository, profile_guided=profile_guided)

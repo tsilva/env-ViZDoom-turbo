@@ -438,7 +438,7 @@ void DThinker::RunThinkers ()
 
 	//VIZDOOM_CODE
 	static const bool vizTurboThinkerMask =
-		getenv("VIZDOOM_TURBO_LEGACY_THINKER_SCAN") == NULL;
+		getenv("ENV_VIZDOOM_TURBO_LEGACY_THINKER_SCAN") == NULL;
 	// Tick every thinker left from last time
 	if (vizTurboThinkerMask && *viz_turbo_profile) //VIZDOOM_CODE
 	{

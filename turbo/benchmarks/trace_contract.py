@@ -9,10 +9,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import env_vizdoom_turbo
 import numpy as np
-import vizdoom_turbo
-from vizdoom_turbo import VizdoomTurboVecEnv
-from vizdoom_turbo._vizdoom_turbo import preprocess_into
+from env_vizdoom_turbo import EnvViZDoomTurboVecEnv
+from env_vizdoom_turbo._env_vizdoom_turbo import preprocess_into
 
 SCENARIOS = (
     "basic",
@@ -80,7 +80,7 @@ def _info_fingerprint(infos: dict[str, np.ndarray]) -> dict[str, Any]:
 
 
 def _trace(scenario: str, profile: dict[str, Any]) -> dict[str, Any]:
-    env = VizdoomTurboVecEnv(
+    env = EnvViZDoomTurboVecEnv(
         game=scenario,
         num_envs=2,
         num_threads=2,
@@ -208,7 +208,7 @@ def main() -> int:
             {
                 "schema_version": 1,
                 "python": sys.version,
-                "package_path": str(Path(vizdoom_turbo.__file__).resolve()),
+                "package_path": str(Path(env_vizdoom_turbo.__file__).resolve()),
                 "preprocessing": _preprocessing_traces(),
                 "traces": traces,
             },

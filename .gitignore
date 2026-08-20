@@ -103,7 +103,7 @@ src/vizdoom/zlib/CTestTestfile.cmake
 *.bak
 *.bcp
 *.lmp
-!turbo/python/vizdoom_turbo/assets/enemy_variants/**/lumps/*.lmp
+!turbo/python/env_vizdoom_turbo/assets/enemy_variants/**/lumps/*.lmp
 *.log
 *.zip
 **/doom2.wad

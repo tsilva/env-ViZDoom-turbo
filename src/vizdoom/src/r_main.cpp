@@ -246,8 +246,8 @@ static VIZTurboBackgroundCacheEntry *VIZ_TurboBackgroundCacheLookup ()
 {
 	static const bool enabled =
 		(*viz_turbo_profile &&
-		 std::getenv("VIZDOOM_TURBO_DISABLE_BACKGROUND_CACHE") == NULL) ||
-		std::getenv("VIZDOOM_TURBO_BACKGROUND_CACHE") != NULL;
+		 std::getenv("ENV_VIZDOOM_TURBO_DISABLE_BACKGROUND_CACHE") == NULL) ||
+		std::getenv("ENV_VIZDOOM_TURBO_BACKGROUND_CACHE") != NULL;
 	if (!enabled || !*viz_turbo_profile || viewwidth != 320 || viewheight != 240 ||
 		RenderTarget->GetPitch() != 320)
 	{

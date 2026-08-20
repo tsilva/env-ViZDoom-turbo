@@ -126,7 +126,7 @@ EXTERN_CVAR (Bool, viz_noxserver) //VIZDOOM_CODE
 static bool VIZ_LegacyInputPolling()
 {
 	static const bool enabled =
-		std::getenv("VIZDOOM_TURBO_LEGACY_INPUT_POLLING") != NULL;
+		std::getenv("ENV_VIZDOOM_TURBO_LEGACY_INPUT_POLLING") != NULL;
 	return enabled;
 }
 
@@ -134,7 +134,7 @@ static bool VIZ_LegacyInputPolling()
 static bool VIZ_HeadlessDisplay()
 {
 	static const bool enabled =
-		std::getenv("VIZDOOM_TURBO_HEADLESS_DISPLAY") != NULL;
+		std::getenv("ENV_VIZDOOM_TURBO_HEADLESS_DISPLAY") != NULL;
 	return enabled;
 }
 

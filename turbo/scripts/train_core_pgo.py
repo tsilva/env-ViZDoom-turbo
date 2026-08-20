@@ -38,7 +38,7 @@ def _new_game(config: Path, config_directory: Path, lane: int):
 def train(*, steps: int, lanes: int) -> None:
     config = Path(vzd.scenarios_path) / "basic.cfg"
     lane_indices = tuple(range(lanes))
-    with tempfile.TemporaryDirectory(prefix="vizdoom-turbo-pgo-") as directory:
+    with tempfile.TemporaryDirectory(prefix="env-vizdoom-turbo-pgo-") as directory:
         games = [_new_game(config, Path(directory), lane) for lane in lane_indices]
         with concurrent.futures.ThreadPoolExecutor(max_workers=lanes) as pool:
             list(pool.map(lambda game: game.init(), games))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from vizdoom_turbo._vizdoom_turbo import ActionHistory, ImageProcessor, preprocess_into
+from env_vizdoom_turbo._env_vizdoom_turbo import ActionHistory, ImageProcessor, preprocess_into
 
 
 def test_area_resize_grayscale_and_maxpool_are_batched() -> None:

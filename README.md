@@ -34,7 +34,7 @@ import gymnasium as gym
 import numpy as np
 
 env = gym.make_vec(
-    "vizdoom_turbo:Vizdoom-Turbo-v0",
+    "env_vizdoom_turbo:EnvViZDoomTurbo-v0",
     game="VizdoomBasic-v1",
     num_envs=16,
     num_threads=8,
@@ -66,7 +66,7 @@ finally:
 The module-qualified ID imports the package and registers the factory. This ID
 is vector-only and requires an explicit `game`, which can be a canonical
 registered `Vizdoom...` Gymnasium ID or a ViZDoom `.cfg` path.
-`VizdoomTurboVecEnv` remains available for direct use, and the existing
+`EnvViZDoomTurboVecEnv` remains available for direct use, and the existing
 scenario-specific vector IDs remain registered for compatibility.
 
 Request `game_variables=["PLAYER_KILLCOUNT"]` when policy-quality metrics must
@@ -85,7 +85,7 @@ For the classic 320×240 Doom HUD, enable it in ViZDoom and mask its bottom 32
 pixels out of policy observations with:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-v1",
     vizdoom_config={"render_hud": True},
     obs_crop=(0, 32, 0, 0),
@@ -103,7 +103,7 @@ Pass `info_frame_stack_keys` to request policy-transition histories whose depth
 always matches the resolved `frame_stack`:
 
 ```python
-env = VizdoomTurboVecEnv(
+env = EnvViZDoomTurboVecEnv(
     "VizdoomBasic-v1",
     frame_skip=4,
     frame_stack=4,
@@ -128,7 +128,7 @@ ViZDoom-tic histories.
 
 ## Turbo Vector API v2
 
-`VizdoomTurboVecEnv` implements the strict Turbo Vector API v2:
+`EnvViZDoomTurboVecEnv` implements the strict Turbo Vector API v2:
 
 - `metadata["turbo_api_version"]` is `2`,
   `metadata["transition_transport"]` is `"numpy"`, and `metadata["render_modes"]`

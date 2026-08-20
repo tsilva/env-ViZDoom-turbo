@@ -72,9 +72,9 @@ void P_Ticker (void)
 	int i;
 	//VIZDOOM_CODE
 	static const bool vizTurboBasicTickScans =
-		std::getenv("VIZDOOM_TURBO_LEGACY_TICK_SCANS") == NULL;
+		std::getenv("ENV_VIZDOOM_TURBO_LEGACY_TICK_SCANS") == NULL;
 	static const bool vizTurboSkipStatusBarTick =
-		std::getenv("VIZDOOM_TURBO_LEGACY_STATUS_BAR_TICK") == NULL; //VIZDOOM_CODE
+		std::getenv("ENV_VIZDOOM_TURBO_LEGACY_STATUS_BAR_TICK") == NULL; //VIZDOOM_CODE
 
 	interpolator.UpdateInterpolations ();
 	r_NoInterpolate = true;
@@ -151,7 +151,7 @@ void P_Ticker (void)
 	{
 		P_UpdateSpecials ();
 		static const bool vizTurboSkipActorEffects =
-			std::getenv("VIZDOOM_TURBO_LEGACY_ACTOR_EFFECTS") == NULL; //VIZDOOM_CODE
+			std::getenv("ENV_VIZDOOM_TURBO_LEGACY_ACTOR_EFFECTS") == NULL; //VIZDOOM_CODE
 		if (!vizTurboSkipActorEffects || !*viz_turbo_profile) //VIZDOOM_CODE
 			P_RunEffects ();	// [RH] Run particle effects
 	}

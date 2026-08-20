@@ -70,9 +70,9 @@ release = [
 ]
 
 [tool.maturin]
-module-name = "vizdoom_turbo._vizdoom_turbo"
+module-name = "env_vizdoom_turbo._env_vizdoom_turbo"
 python-source = "python"
-python-packages = ["vizdoom_turbo", "vizdoom"]
+python-packages = ["env_vizdoom_turbo", "vizdoom"]
 features = ["pyo3/extension-module"]
 exclude = [
   "**/__pycache__/**",
@@ -81,7 +81,7 @@ exclude = [
   "dist/**",
 ]
 
-[tool.vizdoom-turbo]
+[tool.env-vizdoom-turbo]
 upstream-vizdoom-version = "1.3.0"
 
 [tool.pytest.ini_options]

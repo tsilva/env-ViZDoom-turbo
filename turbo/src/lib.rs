@@ -61,7 +61,8 @@ const INDEXED_BACKGROUND_CAPACITY: usize = 256;
 
 fn indexed_background_prefill_enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| std::env::var_os("VIZDOOM_TURBO_DISABLE_BACKGROUND_PREFILL").is_none())
+    *ENABLED
+        .get_or_init(|| std::env::var_os("ENV_VIZDOOM_TURBO_DISABLE_BACKGROUND_PREFILL").is_none())
 }
 
 fn greatest_common_divisor(mut left: u32, mut right: u32) -> u32 {
@@ -1687,7 +1688,7 @@ impl ImageProcessor {
         let available_threads = std::thread::available_parallelism()
             .map(usize::from)
             .unwrap_or(1);
-        let worker_threads = std::env::var("VIZDOOM_TURBO_POOL_THREADS")
+        let worker_threads = std::env::var("ENV_VIZDOOM_TURBO_POOL_THREADS")
             .ok()
             .and_then(|value| value.parse::<usize>().ok())
             .filter(|value| *value > 0)
@@ -1703,7 +1704,7 @@ impl ImageProcessor {
             .min(num_envs);
         let pool = ThreadPoolBuilder::new()
             .num_threads(worker_threads)
-            .thread_name(|index| format!("vizdoom-turbo-image-{index}"))
+            .thread_name(|index| format!("env-vizdoom-turbo-image-{index}"))
             .build()
             .map_err(|error| {
                 PyRuntimeError::new_err(format!(
@@ -1738,11 +1739,11 @@ impl ImageProcessor {
             indexed_area_caches,
             indexed_shared_tiles,
             shared_tile_cache: (optimized_profile
-                && std::env::var_os("VIZDOOM_TURBO_DISABLE_SHARED_TILE_CACHE").is_none())
-                || std::env::var_os("VIZDOOM_TURBO_SHARED_TILE_CACHE").is_some(),
+                && std::env::var_os("ENV_VIZDOOM_TURBO_DISABLE_SHARED_TILE_CACHE").is_none())
+                || std::env::var_os("ENV_VIZDOOM_TURBO_SHARED_TILE_CACHE").is_some(),
             frame_sequence: optimized_profile
-                || std::env::var_os("VIZDOOM_TURBO_FRAME_SEQUENCE").is_some(),
-            async_reset_threshold: std::env::var("VIZDOOM_TURBO_ASYNC_RESET_THRESHOLD")
+                || std::env::var_os("ENV_VIZDOOM_TURBO_FRAME_SEQUENCE").is_some(),
+            async_reset_threshold: std::env::var("ENV_VIZDOOM_TURBO_ASYNC_RESET_THRESHOLD")
                 .ok()
                 .and_then(|value| value.parse::<usize>().ok())
                 .filter(|value| *value <= num_envs)
@@ -2919,7 +2920,7 @@ fn preprocess_into(
 }
 
 #[pymodule]
-fn _vizdoom_turbo(module: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _env_vizdoom_turbo(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<ActionHistory>()?;
     module.add_class::<ImageProcessor>()?;
     module.add_function(wrap_pyfunction!(preprocess_into, module)?)?;

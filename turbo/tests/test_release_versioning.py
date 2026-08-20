@@ -22,13 +22,13 @@ def load_module(name: str, path: Path) -> ModuleType:
 
 @pytest.fixture(scope="module")
 def release_script() -> ModuleType:
-    return load_module("vizdoom_turbo_release", REPO_ROOT / "turbo/scripts/release.py")
+    return load_module("env_vizdoom_turbo_release", REPO_ROOT / "turbo/scripts/release.py")
 
 
 @pytest.fixture(scope="module")
 def release_build() -> ModuleType:
     return load_module(
-        "vizdoom_turbo_release_build",
+        "env_vizdoom_turbo_release_build",
         REPO_ROOT / ".codex/skills/build-release/scripts/release_build.py",
     )
 
@@ -39,7 +39,7 @@ def build_backend() -> ModuleType:
     sys.path.insert(0, package_root)
     try:
         return load_module(
-            "vizdoom_turbo_build_backend",
+            "env_vizdoom_turbo_build_backend",
             REPO_ROOT / "turbo/build_backend.py",
         )
     finally:
@@ -99,12 +99,10 @@ def test_release_workflow_keeps_primary_package_binary_only() -> None:
     assert "uv build --sdist" not in workflow
     assert "audit-sdist" not in workflow
     assert "uv run twine check dist/*" in workflow
-    assert "scripts/redirect_release.py" in workflow
     assert "packages-dir: turbo/publish/primary" in workflow
-    assert "packages-dir: turbo/publish/redirect" in workflow
 
 
-@pytest.mark.parametrize("package", ("vizdoom", "vizdoom_turbo"))
+@pytest.mark.parametrize("package", ("vizdoom", "env_vizdoom_turbo"))
 def test_macos_wheel_repair_accepts_delocates_distribution_derived_layout(
     release_build: ModuleType,
     tmp_path: Path,
@@ -143,13 +141,13 @@ def test_editable_build_keeps_staged_custom_core(
 
     def build_editable(*args: object) -> str:
         events.append("build")
-        return "vizdoom_turbo-editable.whl"
+        return "env_vizdoom_turbo-editable.whl"
 
     monkeypatch.setattr(build_backend.maturin, "build_editable", build_editable)
 
     assert (
         build_backend.build_editable(str(tmp_path))
-        == "vizdoom_turbo-editable.whl"
+        == "env_vizdoom_turbo-editable.whl"
     )
     assert events == ["stage", "build"]
 

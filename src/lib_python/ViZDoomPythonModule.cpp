@@ -24,7 +24,7 @@
 
 #include "ViZDoom.h"
 #include "ViZDoomGamePython.h"
-#include "ViZDoomTurboBatch.h"
+#include "EnvViZDoomTurboBatch.h"
 #include "ViZDoomVersion.h"
 #include "ViZDoomMethodsDocstrings.h"
 #include "ViZDoomObjectsDocstrings.h"

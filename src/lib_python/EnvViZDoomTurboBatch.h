@@ -20,8 +20,8 @@
  THE SOFTWARE.
 */
 
-#ifndef __VIZDOOM_TURBO_BATCH_H__
-#define __VIZDOOM_TURBO_BATCH_H__
+#ifndef __ENV_VIZDOOM_TURBO_BATCH_H__
+#define __ENV_VIZDOOM_TURBO_BATCH_H__
 
 #include "ViZDoomGamePython.h"
 

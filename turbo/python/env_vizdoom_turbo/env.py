@@ -23,7 +23,7 @@ import vizdoom as vzd
 from gymnasium.vector import AutoresetMode, VectorEnv
 from gymnasium.vector.utils import batch_space
 
-from ._vizdoom_turbo import ActionHistory, ImageProcessor
+from ._env_vizdoom_turbo import ActionHistory, ImageProcessor
 from .action_tables import ActionTable, resolve_custom_action
 from .enemy_variants import (
     plus_scenario,
@@ -68,7 +68,7 @@ class _LanePool:
             Thread(
                 target=self._worker,
                 args=(worker,),
-                name=f"vizdoom-turbo-{worker}",
+                name=f"env-vizdoom-turbo-{worker}",
                 daemon=True,
             )
             for worker in range(num_threads)
@@ -482,7 +482,7 @@ class _SignalFrameStacks:
             result[f"_{history_key}"] = present.copy()
 
 
-class VizdoomTurboVecEnv(VectorEnv):
+class EnvViZDoomTurboVecEnv(VectorEnv):
     """Direct Gymnasium vector environment for independent ViZDoom instances.
 
     ViZDoom's native frame-advance operation releases the GIL. This environment
@@ -563,9 +563,9 @@ class VizdoomTurboVecEnv(VectorEnv):
         if record:
             raise ValueError("record=True is unsupported on the native vector path")
         if players != 1:
-            raise ValueError("VizdoomTurboVecEnv currently supports players=1")
+            raise ValueError("EnvViZDoomTurboVecEnv currently supports players=1")
         if _enum_name(obs_type).casefold() not in {"image", "observations.image"}:
-            raise ValueError("VizdoomTurboVecEnv supports image observations only")
+            raise ValueError("EnvViZDoomTurboVecEnv supports image observations only")
         if not _is_stable_integration(inttype):
             raise ValueError("inttype must select the Stable integration")
         if render_mode not in (None, "rgb_array"):
@@ -728,14 +728,14 @@ class VizdoomTurboVecEnv(VectorEnv):
         self._use_indexed_native = (
             native_stepper_available
             and native_processor_available
-            and os.environ.get("VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE") != "1"
+            and os.environ.get("ENV_VIZDOOM_TURBO_DISABLE_NATIVE_PIPELINE") != "1"
             and not self.maxpool_last_two
             and self.obs_grayscale
             and self.obs_resize_algorithm == "area"
             and obs_resize == (84, 84)
         )
 
-        self._tempdir = tempfile.TemporaryDirectory(prefix="vizdoom-turbo-")
+        self._tempdir = tempfile.TemporaryDirectory(prefix="env-vizdoom-turbo-")
         template = self._new_game()
         try:
             self.raw_width = int(template.get_screen_width())
@@ -1041,14 +1041,14 @@ class VizdoomTurboVecEnv(VectorEnv):
             self._native_reset_api = native_api[5]
             self._native_background_api = (
                 native_api[6]
-                if os.environ.get("VIZDOOM_TURBO_DISABLE_BACKGROUND_PROVENANCE") != "1"
+                if os.environ.get("ENV_VIZDOOM_TURBO_DISABLE_BACKGROUND_PROVENANCE") != "1"
                 and (self.obs_crop_mode == "mask" or self.obs_crop == (0, 0, 0, 0))
                 else None
             )
             self._native_reset_start_api = (
                 native_api[7]
                 if self._optimized_profile
-                and os.environ.get("VIZDOOM_TURBO_DISABLE_ASYNC_RESET") != "1"
+                and os.environ.get("ENV_VIZDOOM_TURBO_DISABLE_ASYNC_RESET") != "1"
                 else None
             )
             self._native_error_api = native_api[8:10]
@@ -2039,6 +2039,4 @@ class VizdoomTurboVecEnv(VectorEnv):
             tempdir.cleanup()
 
 
-VizDoomTurboVecEnv = VizdoomTurboVecEnv
-
-__all__ = ["VizDoomTurboVecEnv", "VizdoomTurboVecEnv", "scenario_buttons"]
+__all__ = ["EnvViZDoomTurboVecEnv", "scenario_buttons"]
