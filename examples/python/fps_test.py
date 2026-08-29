@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-#####################################################################
-# This script tests performance in frames per second.
-# Change iters, resolution, window visibility, use get_ state or not.
-# It should give you some idea of how fast the framework can work on
-# your hardware. The test involves copying the state to make it more
-# similar to any reasonable usage. Comment the line with get_state
-# to exclude copying process.
-#####################################################################
+"""Report local ViZDoom step throughput for manual diagnosis.
+
+This single-build helper has no matched baseline or validity gates. Do not use
+its output for provider comparisons or public performance claims; use
+TurboBench's ``vizdoom/basic-v1`` profile for those purposes.
+
+Change the iteration count, resolution, window visibility, or state copying to
+inspect local behavior. The default includes state copying to resemble a normal
+consumer workload.
+"""
 
 import os
 from argparse import ArgumentParser
@@ -23,8 +25,7 @@ DEFAULT_CONFIG = os.path.join(vzd.scenarios_path, "basic.cfg")
 DEFAULT_ITERATIONS = 10000
 
 if __name__ == "__main__":
-
-    parser = ArgumentParser("ViZDoom example showing possible framerates.")
+    parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         dest="config",
         default=DEFAULT_CONFIG,
@@ -41,6 +42,11 @@ if __name__ == "__main__":
         help="Number of iterations (actions/steps) to run",
     )
     args = parser.parse_args()
+
+    print(
+        "Diagnostic only: use TurboBench vizdoom/basic-v1 for comparisons "
+        "and public performance claims."
+    )
 
     game = vzd.DoomGame()
 
@@ -88,7 +94,6 @@ if __name__ == "__main__":
     print("=====================")
 
     for i in tqdm.trange(args.iterations, leave=False):
-
         if game.is_episode_finished():
             game.new_episode()
 

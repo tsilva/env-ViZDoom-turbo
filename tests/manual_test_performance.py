@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""Run manual single-build ViZDoom performance diagnostics.
+
+These checks have no matched baseline or validity gates. Their output must not
+support provider comparisons or public performance claims; use TurboBench's
+``vizdoom/basic-v1`` profile for those purposes.
+"""
+
 from random import choice
 from time import time
 
@@ -118,6 +125,10 @@ def test_init_close(iterations=DEFAULT_INIT_CLOSE_ITERATIONS):
 
 
 if __name__ == "__main__":
+    print(
+        "Diagnostic only: use TurboBench vizdoom/basic-v1 for comparisons "
+        "and public performance claims."
+    )
     test_screen_formats()
     test_buffers()
     test_init_close()

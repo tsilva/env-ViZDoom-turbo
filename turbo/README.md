@@ -334,8 +334,12 @@ uv tool install \
 ```
 
 Use its immutable `vizdoom/basic-v1` profile for correctness-gated throughput
-comparisons. The repository-local `benchmarks/compare_contract.py` remains
-available for focused deterministic trace checks.
+comparisons and public performance claims. The repository-local
+`benchmarks/compare_contract.py` remains available for focused deterministic
+trace checks. The inherited `examples/python/fps_test.py`,
+`examples/python/gymnasium_vect_bench.py`, and
+`tests/manual_test_performance.py` scripts are single-build diagnostics only;
+they do not provide matched workloads, validity gates, or claim evidence.
 
 ## Notes
 
