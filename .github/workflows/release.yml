@@ -167,11 +167,73 @@ jobs:
           path: turbo/wheelhouse-v${{ needs.validate.outputs.version }}-${{ matrix.platform }}/*.whl
           if-no-files-found: error
 
+  parity:
+    name: Verify exact macOS wheel parity
+    needs:
+      - validate
+      - build
+    runs-on: macos-15
+    environment: parity
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+
+      - name: Download canonical wheel
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-wheel-v${{ needs.validate.outputs.version }}-macos-arm64
+          path: candidate
+
+      - name: Install pinned parity tool
+        run: |
+          uv venv --python "${PYTHON_VERSION}" .parity-venv
+          uv pip install --exclude-newer "7 days" --python .parity-venv/bin/python \
+            "turbobench-cli==2.0.0"
+
+      - name: Run and verify exact parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(candidate/*-cp314-cp314-*.whl)
+          if (( ${#wheels[@]} != 1 )); then
+            printf 'expected one canonical cp314 wheel, found %s\n' "${#wheels[@]}" >&2
+            exit 1
+          fi
+          wheel="$(cd "$(dirname "${wheels[0]}")" && pwd)/$(basename "${wheels[0]}")"
+          .parity-venv/bin/python scripts/check_parity.py \
+            --turbobench .parity-venv/bin/turbobench \
+            --python "${PYTHON_VERSION}" \
+            --wheel "$wheel" \
+            --output parity-receipt
+          .parity-venv/bin/turbobench verify-parity parity-receipt \
+            --require-canonical --require-provider env-vizdoom-turbo
+
+      - name: Upload parity receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: parity-receipt-v${{ needs.validate.outputs.version }}
+          path: parity-receipt/**
+          if-no-files-found: error
+
   final-check:
     name: Audit release distributions
     needs:
       - validate
       - build
+      - parity
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -205,6 +267,12 @@ jobs:
           path: turbo/wheelhouse
           merge-multiple: true
 
+      - name: Download parity receipt
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: parity-receipt-v${{ needs.validate.outputs.version }}
+          path: turbo/parity-receipt
+
       - name: Audit wheels
         shell: bash
         working-directory: turbo
@@ -223,7 +291,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p publish/primary
+          mkdir -p publish/evidence
           mv dist/* publish/primary/
+          cp -R parity-receipt publish/evidence/
 
       - name: Upload audited distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -210,6 +210,18 @@ trace checks. The inherited `examples/python/fps_test.py`,
 `tests/manual_test_performance.py` scripts are single-build diagnostics only;
 they do not provide matched workloads, validity gates, or claim evidence.
 
+Cross-provider behavior uses TurboBench's immutable `vizdoom/basic-v2` parity
+profile against original `vizdoom==1.3.0`. Check current work without committing:
+
+```bash
+python scripts/check_parity.py --output /external/evidence/vizdoom-parity
+```
+
+This snapshots tracked edits and nonignored untracked source and is diagnostic.
+For release certification, pass `--wheel /absolute/path/to/final.whl`; the exact
+final wheel must pass on the canonical parity host. Repository-local contract
+traces remain internal consistency checks, not cross-provider certification.
+
 ## Notes
 
 - Python 3.11–3.14 is supported. Source builds require Rust 1.85 or newer.

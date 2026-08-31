@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Delegate cross-provider parity to TurboBench and gate releases on a
+  self-verifying receipt for one exact macOS wheel.
+- Match upstream timeout termination and truncation flags exactly.
+- Reapply unchanged actions after episode resets so native trajectories do not
+  retain stale input state across repeated episode boundaries.
 
 ## 1.3.0.post27 - 2026-08-20
 

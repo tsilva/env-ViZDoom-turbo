@@ -38,7 +38,6 @@ namespace vizdoom {
         this->audioShape.resize(2);
         this->variablesShape.resize(1);
         this->turboTics = 0;
-        this->turboActionInitialized = false;
         this->turboResetInFlight = false;
         this->turboResetSeed = 0;
     }
@@ -283,16 +282,11 @@ namespace vizdoom {
             throw std::invalid_argument("action width does not match available buttons");
 
         for (size_t index = 0; index < actionSize; ++index) {
-			if (!this->turboActionInitialized ||
-				this->nextAction[index] != action[index]) {
-				this->nextAction[index] = action[index];
-				this->doomController->setButtonState(
-					this->availableButtons[index],
-					this->nextAction[index]);
-			}
+			this->nextAction[index] = action[index];
+			this->doomController->setButtonState(
+				this->availableButtons[index],
+				this->nextAction[index]);
         }
-		this->turboActionInitialized = true;
-
         this->turboTotalBefore = this->summaryReward;
         this->turboStepAdvanced = this->doomController->isTicPossible();
         if (this->turboStepAdvanced) {
@@ -347,7 +341,7 @@ namespace vizdoom {
         const bool finished = this->isEpisodeFinished();
         const bool timeout = finished && this->isEpisodeTimeoutReached();
         truncated = finished && timeout && treatTimeoutAsTruncation;
-        terminated = finished && !truncated;
+        terminated = finished;
         if (!finished && frame != nullptr) {
             uint8_t *screen = this->doomController->getScreenBuffer();
             if (screen == nullptr) throw std::runtime_error("Doom screen buffer is unavailable");
@@ -409,7 +403,6 @@ namespace vizdoom {
             DoomGame::setSeed(seed);
             this->doomController->restartMapBatched();
         }
-        this->turboActionInitialized = false;
         this->resetState();
         for (size_t index = 0; index < gameVariablesSize; ++index) {
             gameVariables[index] =

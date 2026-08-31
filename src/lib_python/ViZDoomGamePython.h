@@ -140,7 +140,6 @@ namespace vizdoom {
         std::vector<pyb::ssize_t> variablesShape;
         double turboTotalBefore;
         bool turboStepAdvanced;
-        bool turboActionInitialized;
         bool turboResetInFlight;
         unsigned int turboResetSeed;
         unsigned int turboTics;

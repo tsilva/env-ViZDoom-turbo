@@ -1367,6 +1367,8 @@ def test_terminal_info_frame_stack_does_not_leak_into_next_episode() -> None:
             if bool((terminated | truncated)[0]):
                 break
         assert bool((terminated | truncated)[0])
+        assert bool(terminated[0])
+        assert bool(truncated[0])
         terminal_history = infos["episode_time_frame_stack"].copy()
         terminal_value = infos["episode_time"].copy()
         np.testing.assert_array_equal(terminal_history[:, -1], terminal_value)
@@ -1789,7 +1791,9 @@ def test_native_pipeline_matches_fallback_through_terminals_and_masked_resets(
         np.testing.assert_array_equal(native_observations, fallback_observations)
         assert_info_equal(native_infos, fallback_infos)
 
-        for step in range(640 // frame_skip):
+        # Cross at least three episode boundaries so an action repeated across
+        # a reset cannot be mistaken for already-applied input.
+        for step in range(920 // frame_skip):
             actions = rng.integers(
                 native.single_action_space.n,
                 size=native.num_envs,

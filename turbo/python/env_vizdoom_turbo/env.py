@@ -1781,7 +1781,10 @@ class EnvViZDoomTurboVecEnv(VectorEnv):
         finished = bool(lane_game.is_episode_finished())
         timeout = bool(lane_game.is_episode_timeout_reached()) if finished else False
         truncated = finished and timeout and self.treat_episode_timeout_as_truncation
-        terminated = finished and not truncated
+        # Match the pinned upstream Gymnasium wrapper: an episode timeout is
+        # still an episode finish, so both flags are true when timeout
+        # truncation reporting is enabled.
+        terminated = finished
         return (
             raw,
             previous,
