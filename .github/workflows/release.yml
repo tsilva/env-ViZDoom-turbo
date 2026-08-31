@@ -200,7 +200,8 @@ jobs:
         run: |
           uv venv --python "${PYTHON_VERSION}" .parity-venv
           uv pip install --exclude-newer "7 days" --python .parity-venv/bin/python \
-            "turbobench-cli==2.0.0"
+            --exclude-newer-package turbobench-cli=2026-09-01T00:00:00Z \
+            "turbobench-cli==2.0.1"
 
       - name: Run and verify exact parity
         shell: bash
@@ -322,7 +323,7 @@ jobs:
           path: turbo/publish
 
       - name: Publish primary package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: turbo/publish/primary
 
