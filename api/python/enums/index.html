@@ -472,6 +472,7 @@
 <p>Members:</p>
 <blockquote>
 <div><p>KILLCOUNT</p>
+<p>PLAYER_KILLCOUNT</p>
 <p>ITEMCOUNT</p>
 <p>SECRETCOUNT</p>
 <p>FRAGCOUNT</p>
@@ -609,6 +610,7 @@
 <p>Enum type that defines all variables that can be obtained from the game. Below we describe the meaning of each variable.</p>
 <ul class="simple">
 <li><p><strong>KILLCOUNT</strong>             - Counts the number of monsters killed during the current episode. ~Killing other players/bots do not count towards this.~ From 1.1.5 killing other players/bots counts towards this.</p></li>
+<li><p><strong>PLAYER_KILLCOUNT</strong>      - Counts countable monsters whose killing blow is attributed to the player. Unlike <strong>KILLCOUNT</strong>, excludes monsters killed by infighting. env-ViZDoom-turbo extension.</p></li>
 <li><p><strong>ITEMCOUNT</strong>             - Counts the number of picked up items during the current episode.</p></li>
 <li><p><strong>SECRETCOUNT</strong>           - Counts the number of secret location/objects discovered during the current episode.</p></li>
 <li><p><strong>FRAGCOUNT</strong>             - Counts the number of players/bots killed, minus the number of committed suicides. Useful only in multiplayer mode.</p></li>
