@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Nothing yet.
+
+## 1.3.0.post28 - 2026-08-31
+
 - Delegate cross-provider parity to TurboBench and gate releases on a
   self-verifying receipt for one exact macOS wheel.
 - Match upstream timeout termination and truncation flags exactly.
