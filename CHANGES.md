@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Use TurboBench 2.0.3 so release parity checks preserve exact snapshot
+  continuation through the terminal transition without comparing a newly
+  randomized episode as part of the saved emulator state.
 
 ## 1.3.0.post28 - 2026-08-31
 

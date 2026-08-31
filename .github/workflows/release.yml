@@ -201,7 +201,7 @@ jobs:
           uv venv --python "${PYTHON_VERSION}" .parity-venv
           uv pip install --exclude-newer "7 days" --python .parity-venv/bin/python \
             --exclude-newer-package turbobench-cli=2026-09-01T00:00:00Z \
-            "turbobench-cli==2.0.1"
+            "turbobench-cli==2.0.3"
 
       - name: Run and verify exact parity
         shell: bash
