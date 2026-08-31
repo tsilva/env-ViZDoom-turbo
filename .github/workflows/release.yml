@@ -348,7 +348,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p turbo/release-assets
-          find turbo/publish -type f -exec cp {} turbo/release-assets/ \;
+          find turbo/publish -type f ! -empty -exec cp {} turbo/release-assets/ \;
 
       - name: Create GitHub release
         env:

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Skip empty diagnostic logs when assembling GitHub release assets.
 
 ## 1.3.0.post29 - 2026-08-31
 
