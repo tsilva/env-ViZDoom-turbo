@@ -100,6 +100,8 @@ def test_release_workflow_keeps_primary_package_binary_only() -> None:
     assert "audit-sdist" not in workflow
     assert "uv run twine check dist/*" in workflow
     assert "packages-dir: turbo/publish/primary" in workflow
+    assert '"turbobench-cli==2.0.6"' in workflow
+    assert "turbobench-cli=2026-09-02T14:27:04.219491Z" in workflow
 
 
 @pytest.mark.parametrize("package", ("vizdoom", "env_vizdoom_turbo"))

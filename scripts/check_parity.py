@@ -24,7 +24,7 @@ def main() -> int:
     command = [
         args.turbobench,
         "parity",
-        "vizdoom/basic-v2",
+        "vizdoom/basic-v1",
         "--candidate",
         candidate,
         "--output",

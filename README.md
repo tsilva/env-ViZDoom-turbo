@@ -210,7 +210,7 @@ trace checks. The inherited `examples/python/fps_test.py`,
 `tests/manual_test_performance.py` scripts are single-build diagnostics only;
 they do not provide matched workloads, validity gates, or claim evidence.
 
-Cross-provider behavior uses TurboBench's immutable `vizdoom/basic-v2` parity
+Cross-provider behavior uses TurboBench's immutable `vizdoom/basic-v1` parity
 profile against original `vizdoom==1.3.0`. Check current work without committing:
 
 ```bash
