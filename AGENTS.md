@@ -109,6 +109,8 @@ Before every task in this repository, use the `$specs-author` skill to read the 
 
 Use the project-level `$build-release` skill for versioning, release validation,
 tagging, PyPI publishing, GitHub Release creation, and release monitoring.
+Normal release and validation builds run only in GitHub Actions on `turbo`;
+local preparation handles metadata and Git operations.
 
 
 ## Enemy Visual Variants

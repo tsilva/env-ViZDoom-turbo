@@ -5,32 +5,24 @@ from __future__ import annotations
 
 import argparse
 import os
-import platform
 import re
 import subprocess
 import sys
 import tomllib
-from datetime import date
 from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = PACKAGE_ROOT.parent
-RELEASE_HELPER = (
-    REPO_ROOT / ".codex" / "skills" / "build-release" / "scripts" / "release_build.py"
-)
+RELEASE_HELPER = REPO_ROOT / ".codex" / "skills" / "build-release" / "scripts" / "release_build.py"
 STAGE_VIZDOOM_CORE = PACKAGE_ROOT / "scripts" / "stage_vizdoom_core.py"
-PYTHON = PACKAGE_ROOT / ".venv" / "bin" / "python"
-CHANGES = REPO_ROOT / "CHANGES.md"
+PYTHON = Path(sys.executable)
 RELEASE_FILES = (
     PACKAGE_ROOT / "pyproject.toml",
     PACKAGE_ROOT / "Cargo.toml",
     PACKAGE_ROOT / "Cargo.lock",
     PACKAGE_ROOT / "uv.lock",
-    CHANGES,
 )
-VERSION_RE = re.compile(
-    r"^(?P<base>[0-9]+\.[0-9]+\.[0-9]+)(?:\.post(?P<post>[0-9]+))?$"
-)
+VERSION_RE = re.compile(r"^(?P<base>[0-9]+\.[0-9]+\.[0-9]+)(?:\.post(?P<post>[0-9]+))?$")
 PACKAGE_NAME = "env-vizdoom-turbo"
 TAG_PREFIX = "env-vizdoom-turbo-v"
 
@@ -41,7 +33,9 @@ def run(
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     print("+", " ".join(args))
-    return subprocess.run(args, cwd=PACKAGE_ROOT, env=env, check=True, text=True)
+    environment = os.environ.copy() if env is None else env.copy()
+    environment["UV_CONFIG_FILE"] = str(PACKAGE_ROOT / "uv-tool.toml")
+    return subprocess.run(args, cwd=PACKAGE_ROOT, env=environment, check=True, text=True)
 
 
 def capture(args: list[str]) -> str:
@@ -56,9 +50,7 @@ def ensure_clean() -> None:
 
 def upstream_ref() -> str:
     try:
-        return capture(
-            ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]
-        )
+        return capture(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
     except subprocess.CalledProcessError as exc:
         raise SystemExit("current branch must have an upstream before release") from exc
 
@@ -69,15 +61,14 @@ def ensure_synced() -> tuple[str, str]:
         raise SystemExit(f"unexpected upstream ref: {upstream}")
     remote, branch = upstream.split("/", 1)
     run(["git", "fetch", "--prune", "--tags", remote])
-    counts = capture(
-        ["git", "rev-list", "--left-right", "--count", f"HEAD...{upstream}"]
-    )
+    counts = capture(["git", "rev-list", "--left-right", "--count", f"HEAD...{upstream}"])
     ahead, behind = [int(value) for value in counts.split()]
     if ahead or behind:
         raise SystemExit(
-            f"current branch must be synced with {upstream}; "
-            f"ahead={ahead} behind={behind}"
+            f"current branch must be synced with {upstream}; ahead={ahead} behind={behind}"
         )
+    if branch != "turbo" or capture(["git", "branch", "--show-current"]) != "turbo":
+        raise SystemExit("publication requires synchronized turbo")
     return remote, branch
 
 
@@ -121,26 +112,9 @@ def tag_exists(tag: str) -> bool:
     )
 
 
-def latest_release_tag() -> str | None:
-    try:
-        return capture(
-            [
-                "git",
-                "describe",
-                "--tags",
-                "--abbrev=0",
-                "--match",
-                "env-vizdoom-turbo-v[0-9]*",
-            ]
-        )
-    except subprocess.CalledProcessError:
-        return None
-
-
 def project_version() -> str:
     command = (
-        "import tomllib; "
-        "print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+        "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
     )
     return capture([str(PYTHON), "-c", command])
 
@@ -158,13 +132,16 @@ def upstream_vizdoom_version() -> str:
     tool = metadata.get("tool", {})
     turbo = tool.get("env-vizdoom-turbo", {})
     version = turbo.get("upstream-vizdoom-version")
-    if not isinstance(version, str) or re.fullmatch(
-        r"[0-9]+\.[0-9]+\.[0-9]+",
-        version,
-    ) is None:
+    if (
+        not isinstance(version, str)
+        or re.fullmatch(
+            r"[0-9]+\.[0-9]+\.[0-9]+",
+            version,
+        )
+        is None
+    ):
         raise SystemExit(
-            "tool.env-vizdoom-turbo.upstream-vizdoom-version must be "
-            "MAJOR.MINOR.PATCH"
+            "tool.env-vizdoom-turbo.upstream-vizdoom-version must be MAJOR.MINOR.PATCH"
         )
     return version
 
@@ -205,59 +182,9 @@ def refresh_locks() -> None:
     env = os.environ.copy()
     env.setdefault("UV_CACHE_DIR", ".uv-cache")
     run(["uv", "lock"], env=env)
-    run(["cargo", "check"], env=env)
     run(["cargo", "metadata", "--no-deps"], env=env)
     run(["uv", "lock", "--check"], env=env)
     run(["cargo", "metadata", "--locked", "--no-deps"], env=env)
-
-
-def generated_release_notes(base_ref: str | None) -> str:
-    revision = f"{base_ref}..HEAD" if base_ref else "HEAD"
-    subjects = capture(["git", "log", "--format=%s", revision]).splitlines()
-    notes = []
-    for subject in reversed(subjects):
-        subject = subject.strip()
-        if (
-            not subject
-            or subject.startswith("Release v")
-            or subject.startswith("Release env-vizdoom-turbo-v")
-            or subject in notes
-        ):
-            continue
-        notes.append(subject)
-    if not notes:
-        raise SystemExit("no releasable commits found for release notes")
-    return "\n".join(f"- {subject.rstrip('.')}." for subject in notes)
-
-
-def promote_changelog(
-    version: str,
-    *,
-    generated_notes: str,
-    release_date: str | None = None,
-) -> None:
-    text = CHANGES.read_text(encoding="utf-8")
-    prefix = "# Changelog\n\n## Unreleased\n\n"
-    if not text.startswith(prefix):
-        raise SystemExit("CHANGES.md must begin with an Unreleased section")
-    tail = text[len(prefix) :]
-    separator = tail.find("\n## ")
-    if separator < 0:
-        unreleased = tail.strip()
-        history = ""
-    else:
-        unreleased = tail[:separator].strip()
-        history = tail[separator + 1 :].strip()
-    if not unreleased or unreleased == "- Nothing yet.":
-        unreleased = generated_notes
-    released = release_date or date.today().isoformat()
-    updated = (
-        f"{prefix}- Nothing yet.\n\n"
-        f"## {version} - {released}\n\n{unreleased}\n"
-    )
-    if history:
-        updated += f"\n{history}\n"
-    CHANGES.write_text(updated, encoding="utf-8")
 
 
 def run_pytest(env: dict[str, str]) -> None:
@@ -266,49 +193,6 @@ def run_pytest(env: dict[str, str]) -> None:
         run([str(PYTHON), "-m", "pytest", "-q"], env=env)
     finally:
         run([str(PYTHON), str(STAGE_VIZDOOM_CORE), "clean"], env=env)
-
-
-def run_checks(skip_checks: bool, version: str) -> None:
-    if skip_checks:
-        return
-    env = os.environ.copy()
-    env.setdefault("UV_CACHE_DIR", ".uv-cache")
-    run(["cargo", "fmt", "--check"])
-    run(
-        [
-            "cargo",
-            "clippy",
-            "--all-targets",
-            "--all-features",
-            "--",
-            "-D",
-            "warnings",
-        ]
-    )
-    run(["cargo", "test", "--all-features"])
-    run_pytest(env)
-    run([str(PYTHON), "-m", "ruff", "check", "."], env=env)
-    if sys.platform == "darwin":
-        arch = platform.machine()
-        if arch not in {"arm64", "x86_64"}:
-            raise SystemExit(f"unsupported local macOS architecture: {arch}")
-        release_platform = f"macos-{arch}"
-        helper(
-            "build-platform",
-            "--platform",
-            release_platform,
-            "--version",
-            version,
-        )
-        output = PACKAGE_ROOT / f"wheelhouse-v{version}-{release_platform}"
-    else:
-        run(["uv", "build", "--wheel"], env=env)
-        output = PACKAGE_ROOT / "dist"
-    wheels = sorted(output.glob(f"env_vizdoom_turbo-{version}-*.whl"))
-    if len(wheels) != 1:
-        raise SystemExit(f"expected one local release wheel, found {len(wheels)}")
-    helper("smoke-wheel", str(wheels[0]), "--version", version)
-    run([str(PYTHON), "-m", "twine", "check", str(wheels[0])], env=env)
 
 
 def create_commit_and_tag(version: str) -> str:
@@ -323,7 +207,6 @@ def create_commit_and_tag(version: str) -> str:
             "Cargo.toml",
             "Cargo.lock",
             "uv.lock",
-            "../CHANGES.md",
         ]
     )
     if (
@@ -334,7 +217,7 @@ def create_commit_and_tag(version: str) -> str:
         != 0
     ):
         run(["git", "commit", "-m", f"Release {tag}"])
-    run(["git", "tag", tag, "HEAD"])
+    run(["git", "tag", "-a", tag, "-m", f"Release {tag}"])
     return tag
 
 
@@ -359,32 +242,44 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="allow a target version whose base differs from the pinned ViZDoom release",
     )
-    parser.add_argument("--skip-checks", action="store_true")
     parser.add_argument("--dry-run-push", action="store_true")
-    return parser.parse_args()
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="build the pushed turbo commit in Actions without publication",
+    )
+    args = parser.parse_args()
+    if args.validate and (args.to or args.allow_upstream_base_mismatch or args.dry_run_push):
+        parser.error("--validate cannot be combined with release preparation options")
+    return args
+
+
+def validate() -> None:
+    upstream = upstream_ref()
+    remote, _, branch = upstream.partition("/")
+    if branch != "turbo":
+        raise SystemExit("validation requires a turbo upstream")
+    run(["git", "fetch", remote, "turbo"])
+    sha = capture(["git", "rev-parse", f"{remote}/turbo"])
+    run(["gh", "workflow", "run", "release.yml", "--ref", "turbo", "-f", f"ref={sha}"])
+    print(f"validation-sha\t{sha}")
 
 
 def main() -> None:
     args = parse_args()
     os.chdir(PACKAGE_ROOT)
-    if not PYTHON.exists():
-        raise SystemExit(
-            "expected .venv; run `uv sync --all-extras --group release`"
-        )
+    if args.validate:
+        validate()
+        return
     ensure_clean()
     remote, branch = ensure_synced()
     version = target_version(args)
-    base_ref = latest_release_tag()
     snapshots = {path: path.read_bytes() for path in RELEASE_FILES}
     try:
         helper("bump-version", "--to", version, "--write")
-        promote_changelog(
-            version,
-            generated_notes=generated_release_notes(base_ref),
-        )
         refresh_locks()
         helper("check-version", "--version", version)
-        run_checks(args.skip_checks, version)
+        run(["git", "diff", "--check"])
         tag = create_commit_and_tag(version)
     except BaseException:
         for path, contents in snapshots.items():
@@ -394,10 +289,7 @@ def main() -> None:
     push_release(remote, branch, tag, args.dry_run_push)
     print()
     print(f"Released {tag}: pushed {branch} and tag to {remote}.")
-    print(
-        "GitHub Actions will build, audit, and publish the release "
-        "distributions from the tag."
-    )
+    print("GitHub Actions will build, audit, and publish the release distributions from the tag.")
 
 
 if __name__ == "__main__":
