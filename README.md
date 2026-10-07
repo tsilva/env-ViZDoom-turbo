@@ -1,9 +1,10 @@
-<div align="center">
+<p align="center">
   <img src="./logo.png" alt="env-ViZDoom-turbo" width="420" />
-  <br /><br />
+  <br />
+  <!-- repo-tagline:start -->
   <strong>🚀 Blazing-fast ViZDoom fork with native vectorization and preprocessing 🚀</strong>
-  <br /><br />
-</div>
+  <!-- repo-tagline:end -->
+</p>
 
 `env-ViZDoom-turbo` is a Python library for reinforcement-learning researchers who need fast, parallel ViZDoom environments. It provides a Gymnasium vector environment that can be used directly or selected as an isolated environment provider in GradLab.
 
