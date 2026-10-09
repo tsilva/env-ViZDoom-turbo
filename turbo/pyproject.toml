@@ -99,4 +99,6 @@ exclude-newer = "7 days"
 constraint-dependencies = [
   "mistralai!=2.4.6",
   "guardrails-ai!=0.10.1",
+  "cryptography>=50.0.0",
+  "urllib3>=2.8.0",
 ]
