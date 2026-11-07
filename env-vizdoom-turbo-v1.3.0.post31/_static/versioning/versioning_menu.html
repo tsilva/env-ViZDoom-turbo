@@ -1,12 +1,12 @@
 <div class="versions_menu">
-    <div class="versions_menu__header">
-        <span id="versions_menu-current-version"></span>
+    <button class="versions_menu__header" type="button" aria-expanded="false" aria-controls="docs-versions">
+        <span id="versions_menu-current-version">Documentation versions</span>
         <i class="icon"><svg>
                 <use href="#svg-arrow-right"></use>
             </svg></i>
         <!-- Current Version -->
-    </div>
-    <div class="versions_menu__content">
+    </button>
+    <div class="versions_menu__content" id="docs-versions">
         <span>Versions</span>
         <ul class="versions_menu__list">
             <!-- Versions list -->
@@ -25,6 +25,11 @@
         }
 
         .versions_menu__header {
+            width: 100%;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            text-align: left;
             display: flex;
             padding: 10px 12px;
             font-size: 14px;
@@ -33,7 +38,7 @@
             cursor: pointer;
         }
 
-        .versions_menu__header:hover {
+        .versions_menu__header:hover, .versions_menu__header:focus-visible {
             background-color: var(--color-background-hover, #efeff4);
         }
 
@@ -51,6 +56,7 @@
         }
 
         .versions_menu__content {
+            visibility: hidden;
             width: 200px;
             max-height: 0;
             transition: max-height 0.5s ease-in-out;
@@ -59,6 +65,7 @@
         }
 
         .versions_menu.active .versions_menu__content {
+            visibility: visible;
             max-height: 300px;
             overflow: auto;
         }
@@ -115,16 +122,18 @@
             } else {
                 menuElem.classList.add("active");
             }
+            headerElem.setAttribute("aria-expanded", String(menuElem.classList.contains("active")));
         }
 
         document.addEventListener("click", () => {
             menuElem.classList.remove("active");
+            headerElem.setAttribute("aria-expanded", "false");
         });
 
         const sortVersions = (a, b) => {
             // Remove 'v' prefix if present
-            const innerA = a.replace(/^v/i, "");
-            const innerB = b.replace(/^v/i, "");
+            const innerA = a.replace(/^.*?v(?=\d)/i, "").replace(/\.post(?=\d)/i, ".");
+            const innerB = b.replace(/^.*?v(?=\d)/i, "").replace(/\.post(?=\d)/i, ".");
 
             // Handle alphabetic versions (like 'alpha', 'beta', etc.)
             if (innerA.match(/[a-z]/) && !innerB.match(/[a-z]/)) return 1;
@@ -149,7 +158,7 @@
         }
 
         if ((githubUser !== null && githubUser !== "") || (repo !== null && repo !== "")) {
-            const basePath = "";
+            const basePath = versioningConfig.basePath;
             const mainBranchName = "main"
             const apiUrl = `https://api.github.com/repos/${githubUser}/${repo}/git/trees/gh-pages`;
             const versionRegex = new RegExp(/[vV]?\d+\.\d+(\.?\d+)*/);
@@ -167,7 +176,7 @@
                     }
 
                     // Get current path
-                    let currentPath = document.location.href.split(document.location.origin)[1];
+                    let currentPath = document.location.pathname;
                     let currentVersion = "";
                     // https://domain.com/basePath/1.2.0/content/index.html -> /1.2.0/content/index.html
                     if (basePath !== "") {
@@ -206,13 +215,13 @@
                     }
 
                     // Set current version to menu header
-                    currentVersionStr = currentVersion || latestVersion;
+                    let currentVersionStr = currentVersion || latestVersion;
                     if (currentVersionStr === mainBranchName) {
                         currentVersionStr = currentVersionStr + " (unstable)";
                     } else if (currentVersionStr === latestVersion) {
                         currentVersionStr = currentVersionStr + " (latest)";
                     }
-                    document.getElementById("versions_menu-current-version").innerHTML = currentVersionStr;
+                    document.getElementById("versions_menu-current-version").textContent = currentVersionStr;
                 });
             });
         } else {
