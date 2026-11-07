@@ -16,9 +16,14 @@
 
 # -- Project information -----------------------------------------------------
 import os
+import sys
 from typing import Any, Dict  # noqa
 
 from vizdoom import *  # noqa
+
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_scripts"))
+from pages_presentation import BASE_URL, finish_html  # noqa: E402
 
 
 project = "ViZDoom"
@@ -82,6 +87,7 @@ def strip_signatures(app, what, name, obj, options, signature, return_annotation
 
 
 def setup(app):
+    app.connect("build-finished", finish_html)
     app.connect("autodoc-process-signature", strip_signatures)
 
 
@@ -92,7 +98,7 @@ def setup(app):
 #
 html_theme = "celshast"
 html_title = "ViZDoom Documentation"
-html_baseurl = "https://vizdoom.farama.org"
+html_baseurl = BASE_URL
 html_copy_source = False
 html_favicon = "_static/img/favicon.png"
 html_theme_options = {
